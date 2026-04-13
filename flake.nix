@@ -21,7 +21,6 @@
           buildInputs = [
             pkgs.clang
             pkgs.gnumake
-            pkgs.doctest
             pkgs.bear
           ];
           shellHook = ''
