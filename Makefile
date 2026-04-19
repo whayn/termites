@@ -1,10 +1,10 @@
 CXX = clang++
-CXXFLAGS = -Wall -Wextra -std=c++11 -Iinclude
-LDFLAGS=
+CXXFLAGS = -Wall -Wextra -std=c++11 -Iinclude -fPIE
+LDFLAGS= -pie
 
-EXEC_FILES = termites-main termites-test
+EXEC_FILES = tests projet main
 
-all: tests
+all: $(EXEC_FILES)
 
 %.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -18,10 +18,19 @@ all: tests
 test.o: src/test.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-tests: test.o Coord.o
-		$(CXX) -o $@ $^ $(LDFLAGS)
+tests: test.o Coord.o Grille.o Termite.o Jeu.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-Coord.o: include/Coord.hpp
+projet: projet.o Coord.o Grille.o Termite.o Jeu.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+main: main.o Coord.o Grille.o Termite.o Jeu.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+Coord.o: include/Coord.hpp include/parametres.hpp
+Grille.o: include/Grille.hpp  include/parametres.hpp
+Termite.o: include/Termite.hpp  include/parametres.hpp
+Jeu.o: include/Jeu.hpp  include/parametres.hpp
 
 clean:
 	rm -f *.o $(EXEC_FILES)
