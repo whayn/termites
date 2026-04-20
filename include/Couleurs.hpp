@@ -14,6 +14,7 @@ const std::string INVERSE = "\033[7m";
 const std::string BARRE = "\033[9m";
 
 // Texte
+const std::string NOIR = "\033[30m";
 const std::string ROUGE = "\033[31m";
 const std::string VERT = "\033[32m";
 const std::string JAUNE = "\033[33m";
@@ -21,6 +22,16 @@ const std::string BLEU = "\033[34m";
 const std::string MAGENTA = "\033[35m";
 const std::string CYAN = "\033[36m";
 const std::string BLANC = "\033[37m";
+// Variations claires
+const std::string NOIR_CLAIR = "\033[90m";
+const std::string ROUGE_CLAIR = "\033[91m";
+const std::string VERT_CLAIR = "\033[92m";
+const std::string JAUNE_CLAIR = "\033[93m";
+const std::string BLEU_CLAIR = "\033[94m";
+const std::string MAGENTA_CLAIR = "\033[95m";
+const std::string CYAN_CLAIR = "\033[96m";
+const std::string BLANC_CLAIR = "\033[97m";
+
 // Fond
 const std::string FOND_ROUGE = "\033[41m";
 const std::string FOND_VERT = "\033[42m";

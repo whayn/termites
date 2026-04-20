@@ -2,7 +2,6 @@
 #define COORD_HPP
 
 #include <ostream>
-#include <vector>
 
 class Coord {
 private:

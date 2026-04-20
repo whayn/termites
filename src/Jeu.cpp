@@ -2,7 +2,9 @@
 #include "Colonie.hpp"
 #include "Couleurs.hpp"
 #include "Grille.hpp"
+#include "Termite.hpp"
 #include "parametres.hpp"
+#include "utilitaires.hpp"
 #include <cstdlib>
 #include <doctest.h>
 #include <stdexcept>
@@ -16,9 +18,19 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
         "Le nombre de colonies est trop élevé pour la taille de la grille");
   }
 
+  std::vector<std::string> couleurs = {
+      Console::ROUGE,         Console::VERT,       Console::JAUNE,
+      Console::BLEU,          Console::MAGENTA,    Console::CYAN,
+      Console::ROUGE_CLAIR,   Console::VERT_CLAIR, Console::BLEU_CLAIR,
+      Console::MAGENTA_CLAIR,
+  };
+
+  melanger(couleurs);
+
   // https://en.wikipedia.org/wiki/K-means%2B%2B#Improved_initialization_algorithm
-  Colonie premiereColonie(
-      0, Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE), 6, 0.1);
+  Colonie premiereColonie(0,
+                          Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE),
+                          6, 0.1, couleurs[0]);
   colonies.push_back(premiereColonie);
 
   for (int k = 1; k < nbColonies; k++) {
@@ -42,7 +54,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
       }
     }
 
-    // Choix de la position basé sur la distance au carré
+    // Choix de la position des nids basé sur la distance au carré
     double cible = (double)rand() / RAND_MAX * sommeDistances;
     double cumul = 0;
     for (int i = 0; i < (int)distanceCarrees.size(); i++) {
@@ -50,7 +62,8 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
       if (cumul >= cible) {
         int x = i / TAILLE_GRILLE;
         int y = i % TAILLE_GRILLE;
-        Colonie nouvelleColonie(k, Coord(x, y), 6, 0.1);
+        Colonie nouvelleColonie(k, Coord(x, y), 6, 0.1,
+                                couleurs[k % (int)couleurs.size()]);
         colonies.push_back(nouvelleColonie);
         break;
       }
@@ -62,6 +75,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
     grille.poseNid(colonie.getPosition(), colonie.getId());
   }
 
+  // Placement des termites
   int idTermite = 0;
 
   for (const Colonie &colonie : colonies) {
@@ -78,8 +92,9 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
 
   for (int i = 0; i < TAILLE_GRILLE; i++) {
     for (int j = 0; j < TAILLE_GRILLE; j++) {
-      if (rand() % 100 < (int)(densiteBrindilles * 100)) {
-        grille.poseBrindille(Coord(i, j));
+      Coord c(i, j);
+      if (grille.estVide(c) && rand() % 100 < (int)(densiteBrindilles * 100)) {
+        grille.poseBrindille(c, -1);
       }
     }
   }
@@ -91,11 +106,7 @@ void Jeu::etapeSuivante() {
     ordreDePassage[i] = i;
   }
 
-  // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
-  for (int i = 0; i < (int)ordreDePassage.size() - 1; i++) {
-    int j = i + rand() % (ordreDePassage.size() - i);
-    std::swap(ordreDePassage[i], ordreDePassage[j]);
-  }
+  melanger(ordreDePassage);
 
   for (int id : ordreDePassage) {
     termites[id].vieTermite(grille);
@@ -108,16 +119,27 @@ void Jeu::etapeSuivante() {
 std::ostream &Jeu::afficheJeu(std::ostream &out) const {
   out << Console::CYAN << "Étape " << Console::GRAS << numeroEtape << " :\n"
       << Console::RESET;
+
   for (int i = 0; i < TAILLE_GRILLE; i++) {
     for (int j = 0; j < TAILLE_GRILLE; j++) {
       Coord posCourante(i, j);
       int idTermite = grille.numéroTermite(posCourante);
+      int idColonie = grille.proprietaireCase(posCourante);
 
       if (idTermite != -1) {
-        out << Console::ROUGE << termites.at(idTermite).toString()
+        Termite t = termites.at(idTermite);
+        out << colonies[t.getIdColonie()].getCouleur() << t.toString()
             << Console::RESET << " ";
+
       } else if (grille.contientBrindille(posCourante)) {
-        out << Console::JAUNE << "* " << Console::RESET;
+        out << ((idColonie == -1) ? Console::RESET
+                                  : colonies[idColonie].getCouleur())
+            << "* " << Console::RESET;
+
+      } else if (grille.contientNid(posCourante)) {
+        out << Console::GRAS << colonies[idColonie].getCouleur() << "#"
+            << idColonie << Console::RESET << " ";
+
       } else {
         out << "  ";
       }

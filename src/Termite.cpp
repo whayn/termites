@@ -64,6 +64,14 @@ bool Termite::brindilleEnFace(const Grille &grille) const {
   }
 }
 
+bool Termite::nidEnFace(const Grille &grille) const {
+  try {
+    return grille.contientNid(devant());
+  } catch (std::out_of_range) {
+    return false;
+  }
+}
+
 int Termite::voisinsLibre(const Grille &grille) const {
   int voisins = 0;
   for (int i = std::max(position.getLig() - 1, 0);
@@ -111,7 +119,7 @@ void Termite::dechargeBrindille(Grille &grille) {
   if (!laVoieEstLibre(grille) || !avecBrindille || sablier != 0)
     return;
 
-  grille.poseBrindille(devant());
+  grille.poseBrindille(devant(), idColonie);
   avecBrindille = false;
   sablier = getDureeSablier();
 }
@@ -119,24 +127,37 @@ void Termite::dechargeBrindille(Grille &grille) {
 void Termite::vieTermite(Grille &grille) {
   if (sablier > 0)
     sablier--;
+
   if (!avecBrindille) {
+
     if (brindilleEnFace(grille) && sablier == 0) {
-      chargeBrindille(grille);
+      // Les termites peuvent voler les brindilles des autres colonies, mais pas
+      // les leurs
+      if (grille.proprietaireCase(devant()) != idColonie) {
+        chargeBrindille(grille);
+      }
     } else {
       marcheAleatoire(grille);
     }
+
   } else if (avecBrindille) {
+
     if (!tourneSurPlace) {
-      if (brindilleEnFace(grille) && sablier == 0 && voisinsLibre(grille) > 1) {
+      if (((brindilleEnFace(grille) || nidEnFace(grille)) &&
+           grille.proprietaireCase(devant()) == idColonie) &&
+          sablier == 0 && voisinsLibre(grille) > 1) {
         tourneSurPlace = true;
         tourneADroite();
+
       } else {
         marcheAleatoire(grille);
       }
+
     } else if (tourneSurPlace) {
       if (laVoieEstLibre(grille)) {
         dechargeBrindille(grille);
         tourneSurPlace = false;
+
       } else {
         tourneADroite();
       }

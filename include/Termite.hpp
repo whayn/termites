@@ -43,6 +43,7 @@ public:
   // Lecture avec le monde
   bool laVoieEstLibre(const Grille &grille) const;
   bool brindilleEnFace(const Grille &grille) const;
+  bool nidEnFace(const Grille &grille) const;
   int voisinsLibre(const Grille &grille) const;
 
   // Actions sur le monde
