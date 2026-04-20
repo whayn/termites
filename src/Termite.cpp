@@ -243,9 +243,14 @@ TEST_CASE("Test de la classe Termite") {
     }
     CHECK(t.getSablier() == 0);
 
+    // On s'assure que la voie est libre
+    while (!t.laVoieEstLibre(g)) {
+      t.tourneADroite();
+    }
+
     t.dechargeBrindille(g);
     CHECK(t.porteBrindille() == false);
-    CHECK(g.contientBrindille(devant) == true);
+    CHECK(g.contientBrindille(t.devant()) == true);
     CHECK(t.getSablier() == t.getDureeSablier());
   }
 
