@@ -227,4 +227,51 @@ TEST_CASE("Test de la classe Termite") {
     CHECK(g.contientBrindille(devant) == true);
     CHECK(t.getSablier() == t.getDureeSablier());
   }
+
+  SUBCASE("Voisins Libres") {
+    CHECK(t.voisinsLibre(g) == 8);
+
+    Coord nw(4, 4);
+    g.poseBrindille(nw);
+    CHECK(t.voisinsLibre(g) == 7);
+    g.enleveBrindille(nw);
+
+    Coord n(4, 5);
+    g.poseTermite(n, 2);
+    CHECK(t.voisinsLibre(g) == 7);
+    g.enleveTermite(n);
+
+    Coord voisinsAll[8] = {Coord(4, 4), Coord(4, 5), Coord(4, 6), Coord(5, 4),
+                           Coord(5, 6), Coord(6, 4), Coord(6, 5), Coord(6, 6)};
+
+    for (int k = 0; k < 8; ++k) {
+      if (k % 2 == 0)
+        g.poseBrindille(voisinsAll[k]);
+      else
+        g.poseTermite(voisinsAll[k], 10 + k);
+    }
+    CHECK(t.voisinsLibre(g) == 0);
+
+    for (int k = 0; k < 8; ++k) {
+      if (k % 2 == 0)
+        g.enleveBrindille(voisinsAll[k]);
+      else
+        g.enleveTermite(voisinsAll[k]);
+    }
+
+    Termite tc(3, 0, Coord(0, 0));
+    g.poseTermite(Coord(0, 0), 3);
+    CHECK(tc.voisinsLibre(g) == 3);
+
+    Coord right(0, 1);
+    g.poseBrindille(right);
+    CHECK(tc.voisinsLibre(g) == 2);
+    g.enleveBrindille(right);
+    g.enleveTermite(Coord(0, 0));
+
+    Termite te(4, 0, Coord(0, 5));
+    g.poseTermite(Coord(0, 5), 4);
+    CHECK(te.voisinsLibre(g) == 5);
+    g.enleveTermite(Coord(0, 5));
+  }
 }
