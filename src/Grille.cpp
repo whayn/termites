@@ -3,32 +3,34 @@
 
 #include "parametres.hpp"
 
-void Grille::poseBrindille(Coord c) {
-  if (cases[c.getLig()][c.getCol()].contientBrindille) {
+bool Grille::contientBrindille(Coord c) const {
+  return cases[c.getLig()][c.getCol()].type == TypeCase::BRINDILLE;
+};
+
+void Grille::poseBrindille(Coord c, int idColonie) {
+  if (contientBrindille(c)) {
     throw std::logic_error("Il y a déjà une brindille à cette position");
   }
   if (cases[c.getLig()][c.getCol()].idTermite != -1) {
     throw std::logic_error("Il y a déjà une termite à cette position");
   }
-  cases[c.getLig()][c.getCol()].contientBrindille = true;
+  cases[c.getLig()][c.getCol()].type = TypeCase::BRINDILLE;
+  cases[c.getLig()][c.getCol()].idColonie = idColonie;
 };
 
 void Grille::enleveBrindille(Coord c) {
-  if (!cases[c.getLig()][c.getCol()].contientBrindille) {
+  if (!contientBrindille(c)) {
     throw std::logic_error("Il n'y a pas de brindille à cette position");
   }
-  cases[c.getLig()][c.getCol()].contientBrindille = false;
+  cases[c.getLig()][c.getCol()].type = TypeCase::VIDE;
+  cases[c.getLig()][c.getCol()].idColonie = -1;
 }
-
-bool Grille::contientBrindille(Coord c) const {
-  return cases[c.getLig()][c.getCol()].contientBrindille;
-};
 
 void Grille::poseTermite(Coord c, int idT) {
   if (cases[c.getLig()][c.getCol()].idTermite != -1) {
     throw std::logic_error("Il y a déjà une termite à cette position");
   }
-  if (cases[c.getLig()][c.getCol()].contientBrindille) {
+  if (contientBrindille(c)) {
     throw std::logic_error("Il y a déjà une brindille à cette position");
   }
   cases[c.getLig()][c.getCol()].idTermite = idT;
@@ -45,9 +47,24 @@ int Grille::numéroTermite(Coord c) const {
   return cases[c.getLig()][c.getCol()].idTermite;
 }
 
+bool Grille::contientNid(Coord c) const {
+  return cases[c.getLig()][c.getCol()].type == TypeCase::NID;
+}
+void Grille::poseNid(Coord c, int idColonie) {
+  if (!estVide(c)) {
+    throw std::logic_error("Il y a déjà quelque chose à cette position");
+  }
+  cases[c.getLig()][c.getCol()].type = TypeCase::NID;
+  cases[c.getLig()][c.getCol()].idColonie = idColonie;
+}
+
+int Grille::proprietaireCase(Coord c) const {
+  return cases[c.getLig()][c.getCol()].idColonie;
+}
+
 bool Grille::estVide(Coord c) const {
   return cases[c.getLig()][c.getCol()].idTermite == -1 &&
-         !cases[c.getLig()][c.getCol()].contientBrindille;
+         !(cases[c.getLig()][c.getCol()].type == TypeCase::BRINDILLE);
 }
 
 std::ostream &Grille::print(std::ostream &out) const {
@@ -55,7 +72,7 @@ std::ostream &Grille::print(std::ostream &out) const {
     for (int j = 0; j < (int)cases[i].size(); j++) {
       if (cases[i][j].idTermite != -1) {
         out << "T ";
-      } else if (cases[i][j].contientBrindille) {
+      } else if (contientBrindille(Coord(i, j))) {
         out << "* ";
       } else {
         out << "  ";

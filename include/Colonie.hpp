@@ -11,9 +11,7 @@ private:
   int score;
 
 public:
-  Colonie(int id, Coord position, int dureeSablier, float probaTourner)
-      : id(id), position(position), dureeSablier(dureeSablier),
-        probaTourner(probaTourner), score(0) {}
+  Colonie(int id, Coord position, int dureeSablier, float probaTourner);
 
   int getId() const { return id; }
   Coord getPosition() const { return position; }

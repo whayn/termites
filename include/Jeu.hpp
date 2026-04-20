@@ -1,6 +1,7 @@
 #ifndef JEU_HPP
 #define JEU_HPP
 
+#include "Colonie.hpp"
 #include "Grille.hpp"
 #include "Termite.hpp"
 #include <vector>
@@ -9,12 +10,14 @@ class Jeu {
 private:
   Grille grille;
   std::vector<Termite> termites;
+  std::vector<Colonie> colonies;
   int numeroEtape;
 
   void verifieIntegrite() const;
 
 public:
-  Jeu(int nbTermites = 20, float densiteBrindilles = 0.05);
+  Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.05,
+      int nbColonies = 2);
 
   void etapeSuivante();
 

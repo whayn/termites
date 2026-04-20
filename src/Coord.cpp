@@ -1,5 +1,6 @@
 #include "Coord.hpp"
 #include "doctest.h"
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 
@@ -11,6 +12,12 @@ Coord::Coord(int lig, int col) : lig(lig), col(col) {
     throw std::out_of_range("Coordonnées " + std::to_string(lig) + ", " +
                             std::to_string(col) + " hors de la grille !");
   }
+}
+
+double Coord::distance(const Coord &c) const {
+  int dLig = lig - c.lig;
+  int dCol = col - c.col;
+  return std::sqrt(dLig * dLig + dCol * dCol);
 }
 
 std::ostream &Coord::print(std::ostream &out) const {

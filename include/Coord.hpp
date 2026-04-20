@@ -15,6 +15,8 @@ public:
   int getLig() const { return lig; }
   int getCol() const { return col; }
 
+  double distance(const Coord &c) const;
+
   std::ostream &print(std::ostream &out) const;
 
   bool operator==(const Coord &c) const { return lig == c.lig && col == c.col; }

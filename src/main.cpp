@@ -36,6 +36,7 @@ int main() {
 
     for (int i = 0; i < nbPasse; i++) {
       jeu.etapeSuivante();
+      system("clear");
       std::cout << jeu;
     }
   }

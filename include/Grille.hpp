@@ -4,13 +4,14 @@
 #include <ostream>
 #include <vector>
 
-// Structure dont les attributs sont publics et qui sera cachée de
-// l'utilisateur par le type abstrait Grille.
+enum class TypeCase { VIDE, BRINDILLE, NID };
+
 struct Case {
-  bool contientBrindille;
+  TypeCase type;
+  int idColonie; // -1 si pas de propriétaire, sinon id de la colonie
   int idTermite; // -1 si aucune termite
 
-  Case() : contientBrindille(false), idTermite(-1) {}
+  Case() : type(TypeCase::VIDE), idTermite(-1) {}
 };
 
 class Grille {
@@ -20,13 +21,20 @@ private:
 public:
   Grille(int t) : cases(t, std::vector<Case>(t)) {}
 
-  void poseBrindille(Coord c);
+  void poseBrindille(
+      Coord c,
+      int idColonie = -1); // un appel par défaut pour les brindilles neutres
   void enleveBrindille(Coord c);
   bool contientBrindille(Coord c) const;
 
   void poseTermite(Coord c, int idT);
   void enleveTermite(Coord c);
   int numéroTermite(Coord c) const;
+
+  bool contientNid(Coord c) const;
+  void poseNid(Coord c, int idColonie);
+
+  int proprietaireCase(Coord c) const;
 
   bool estVide(Coord c) const;
 

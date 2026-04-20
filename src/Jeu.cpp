@@ -1,13 +1,80 @@
 #include "Jeu.hpp"
+#include "Colonie.hpp"
 #include "Couleurs.hpp"
 #include "Grille.hpp"
 #include "parametres.hpp"
+#include <cstdlib>
 #include <doctest.h>
 #include <stdexcept>
 #include <vector>
 
-Jeu::Jeu(int nbTermites, float densiteBrindilles)
+Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
     : grille(TAILLE_GRILLE), numeroEtape(0) {
+
+  if (nbColonies > TAILLE_GRILLE * TAILLE_GRILLE / 8) {
+    throw std::invalid_argument(
+        "Le nombre de colonies est trop élevé pour la taille de la grille");
+  }
+
+  // https://en.wikipedia.org/wiki/K-means%2B%2B#Improved_initialization_algorithm
+  Colonie premiereColonie(
+      0, Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE), 6, 0.1);
+  colonies.push_back(premiereColonie);
+
+  for (int k = 1; k < nbColonies; k++) {
+    std::vector<double> distanceCarrees;
+    double sommeDistances = 0;
+
+    for (int i = 0; i < TAILLE_GRILLE; i++) {
+      for (int j = 0; j < TAILLE_GRILLE; j++) {
+        Coord c(i, j);
+
+        double distPlusProche = -1;
+        for (const auto &colonie : colonies) {
+          double d = c.distance(colonie.getPosition());
+
+          if (distPlusProche == -1 || d < distPlusProche)
+            distPlusProche = d;
+        }
+
+        distanceCarrees.push_back(distPlusProche * distPlusProche);
+        sommeDistances += (distPlusProche * distPlusProche);
+      }
+    }
+
+    // Choix de la position basé sur la distance au carré
+    double cible = (double)rand() / RAND_MAX * sommeDistances;
+    double cumul = 0;
+    for (int i = 0; i < (int)distanceCarrees.size(); i++) {
+      cumul += distanceCarrees[i];
+      if (cumul >= cible) {
+        int x = i / TAILLE_GRILLE;
+        int y = i % TAILLE_GRILLE;
+        Colonie nouvelleColonie(k, Coord(x, y), 6, 0.1);
+        colonies.push_back(nouvelleColonie);
+        break;
+      }
+    }
+  }
+
+  // Placement des nids
+  for (const Colonie &colonie : colonies) {
+    grille.poseNid(colonie.getPosition(), colonie.getId());
+  }
+
+  int idTermite = 0;
+
+  for (const Colonie &colonie : colonies) {
+    for (int i = 0; i < nbTermitesParColonie; i++) {
+      Coord pos(0, 0);
+      do {
+        pos = Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE);
+      } while (!grille.estVide(pos));
+      grille.poseTermite(pos, idTermite);
+      termites.push_back(Termite(idTermite, colonie.getId(), pos));
+      idTermite++;
+    }
+  }
 
   for (int i = 0; i < TAILLE_GRILLE; i++) {
     for (int j = 0; j < TAILLE_GRILLE; j++) {
@@ -15,15 +82,6 @@ Jeu::Jeu(int nbTermites, float densiteBrindilles)
         grille.poseBrindille(Coord(i, j));
       }
     }
-  }
-
-  for (int i = 0; i < nbTermites; i++) {
-    Coord pos(0, 0);
-    do {
-      pos = Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE);
-    } while (!grille.estVide(pos));
-    grille.poseTermite(pos, i);
-    termites.push_back(Termite(i, 0, pos));
   }
 }
 
