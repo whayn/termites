@@ -44,26 +44,4 @@ Direction aDroite(Direction d);
 
 Coord devantCoord(const Coord &c, Direction d);
 
-// EnsCoord
-class EnsCoord {
-private:
-  std::vector<Coord> coords;
-
-  int position(const Coord &c) const;
-
-public:
-  EnsCoord(std::vector<Coord> coords) : coords(coords) {}
-
-  bool contient(const Coord &c) const { return position(c) != -1; }
-  bool estVide() const { return coords.empty(); }
-  int taille() const { return coords.size(); }
-  Coord ieme(int i) const;
-  Coord choixHasard() const;
-
-  void ajoute(Coord c);
-  void supprime(const Coord &c);
-};
-
-EnsCoord voisines(const Coord &c);
-
 #endif
