@@ -8,18 +8,18 @@
 class Termite {
 private:
   int id;
+  int idColonie;
   Coord position;
   Direction cap;
   bool avecBrindille;
   int sablier;
   bool tourneSurPlace;
+  int dureeSablier;
+  float probaTourner;
 
 public:
-  Termite(Coord position, int id);
-
-  // Constantes donc pas besoin de getters
-  static const int DUREE_SABLIER = 6;
-  static constexpr float PROBA_TOURNER = 0.1;
+  Termite(int id, int idColonie, Coord position, int dureeSablier = 6,
+          float probaTourner = 0.1);
 
   // Accès
   Direction directionTermite() const;
@@ -27,7 +27,10 @@ public:
   Coord devant() const;
   int getSablier() const;
   int getId() const { return id; }
+  int getIdColonie() const { return idColonie; }
   Coord getPosition() const { return position; }
+  int getDureeSablier() const { return dureeSablier; }
+  float getProbaTourner() const { return probaTourner; }
 
   // Prédicat
   bool porteBrindille() const;

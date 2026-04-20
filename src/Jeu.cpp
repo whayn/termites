@@ -23,7 +23,7 @@ Jeu::Jeu(int nbTermites, float densiteBrindilles)
       pos = Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE);
     } while (!grille.estVide(pos));
     grille.poseTermite(pos, i);
-    termites.push_back(Termite(pos, i));
+    termites.push_back(Termite(i, 0, pos));
   }
 }
 

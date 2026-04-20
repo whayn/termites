@@ -5,11 +5,12 @@
 #include <doctest.h>
 #include <stdexcept>
 
-const int Termite::DUREE_SABLIER;
-
-Termite::Termite(Coord position, int id)
-    : id(id), position(position), cap(static_cast<Direction>(rand() % 8)),
-      avecBrindille(false), sablier(0), tourneSurPlace(false) {};
+Termite::Termite(int id, int idColonie, Coord position, int dureeSablier,
+                 float probaTourner)
+    : id(id), idColonie(idColonie), position(position),
+      cap(static_cast<Direction>(rand() % 8)), avecBrindille(false), sablier(0),
+      tourneSurPlace(false), dureeSablier(dureeSablier),
+      probaTourner(probaTourner) {};
 
 Direction Termite::directionTermite() const { return cap; };
 
@@ -91,7 +92,7 @@ void Termite::avance(Grille &grille) {
 void Termite::marcheAleatoire(Grille &grille) {
   if (!laVoieEstLibre(grille)) {
     tourneAleat();
-  } else if (rand() % 100 < (int)(PROBA_TOURNER * 100)) {
+  } else if (rand() % 100 < (int)(getProbaTourner() * 100)) {
     tourneAleat();
   }
   avance(grille);
@@ -103,7 +104,7 @@ void Termite::chargeBrindille(Grille &grille) {
 
   grille.enleveBrindille(devant());
   avecBrindille = true;
-  sablier = DUREE_SABLIER;
+  sablier = getDureeSablier();
 }
 
 void Termite::dechargeBrindille(Grille &grille) {
@@ -112,7 +113,7 @@ void Termite::dechargeBrindille(Grille &grille) {
 
   grille.poseBrindille(devant());
   avecBrindille = false;
-  sablier = DUREE_SABLIER;
+  sablier = getDureeSablier();
 }
 
 void Termite::vieTermite(Grille &grille) {
@@ -126,7 +127,7 @@ void Termite::vieTermite(Grille &grille) {
     }
   } else if (avecBrindille) {
     if (!tourneSurPlace) {
-      if (brindilleEnFace(grille) && sablier == 0  && voisinsLibre(grille) > 1) {
+      if (brindilleEnFace(grille) && sablier == 0 && voisinsLibre(grille) > 1) {
         tourneSurPlace = true;
         tourneADroite();
       } else {
@@ -145,7 +146,7 @@ void Termite::vieTermite(Grille &grille) {
 
 TEST_CASE("Test de la classe Termite") {
   Grille g(10);
-  Termite t(Coord(5, 5), 1);
+  Termite t(1, 0, Coord(5, 5));
   g.poseTermite(Coord(5, 5), 1);
 
   Coord cible = t.devant();
@@ -209,14 +210,14 @@ TEST_CASE("Test de la classe Termite") {
 
     t.chargeBrindille(g);
     CHECK(t.porteBrindille() == true);
-    CHECK(t.getSablier() == Termite::DUREE_SABLIER);
+    CHECK(t.getSablier() == t.getDureeSablier());
 
     t.dechargeBrindille(g);
     CHECK(t.porteBrindille() == true);
     CHECK(g.estVide(devant) == true);
 
-    for (int i = 0; i < Termite::DUREE_SABLIER; i++) {
-      CHECK(t.getSablier() == Termite::DUREE_SABLIER - i);
+    for (int i = 0; i < t.getDureeSablier(); i++) {
+      CHECK(t.getSablier() == t.getDureeSablier() - i);
       t.vieTermite(g);
     }
     CHECK(t.getSablier() == 0);
@@ -224,6 +225,6 @@ TEST_CASE("Test de la classe Termite") {
     t.dechargeBrindille(g);
     CHECK(t.porteBrindille() == false);
     CHECK(g.contientBrindille(devant) == true);
-    CHECK(t.getSablier() == Termite::DUREE_SABLIER);
+    CHECK(t.getSablier() == t.getDureeSablier());
   }
 }
