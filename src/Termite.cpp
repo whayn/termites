@@ -130,12 +130,12 @@ void Termite::vieTermite(Grille &grille) {
 
   if (!avecBrindille) {
 
-    if (brindilleEnFace(grille) && sablier == 0) {
-      // Les termites peuvent voler les brindilles des autres colonies, mais pas
-      // les leurs
-      if (grille.proprietaireCase(devant()) != idColonie) {
-        chargeBrindille(grille);
-      }
+    // Les termites peuvent voler les brindilles des autres colonies, mais pas
+    // les leurs
+    if (brindilleEnFace(grille) && sablier == 0 &&
+        grille.proprietaireCase(devant()) != idColonie) {
+      chargeBrindille(grille);
+
     } else {
       marcheAleatoire(grille);
     }

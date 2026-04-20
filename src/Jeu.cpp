@@ -138,7 +138,7 @@ std::ostream &Jeu::afficheJeu(std::ostream &out) const {
 
       } else if (grille.contientNid(posCourante)) {
         out << Console::GRAS << colonies[idColonie].getCouleur() << "#"
-            << idColonie << Console::RESET << " ";
+            << Console::RESET << " ";
 
       } else {
         out << "  ";
@@ -155,7 +155,7 @@ std::ostream &operator<<(std::ostream &out, const Jeu &j) {
 
 void Jeu::verifieIntegrite() const {
 
-  for (size_t i = 0; i < termites.size(); i++) {
+  for (int i = 0; i < (int)termites.size(); i++) {
     const Termite &t = termites[i];
     int id = t.getId();
 
@@ -169,8 +169,33 @@ void Jeu::verifieIntegrite() const {
     if (grille.numéroTermite(pos) != id) {
       throw std::logic_error("Incohérence entre la position du termite " +
                              std::to_string(id) + " et la grille");
+
+      int idCol = t.getIdColonie();
+      if (idCol < 0 || idCol >= (int)colonies.size()) {
+        throw std::logic_error("Termite " + std::to_string(id) +
+                               " a une colonie avec un id " +
+                               std::to_string(idCol) + " invalide");
+      }
     }
   }
+
+  for (int i = 0; i < (int)colonies.size(); i++) {
+    const Colonie &c = colonies[i];
+    int id = c.getId();
+
+    if (id != (int)i) {
+      throw std::logic_error(
+          "Colonie stockée au mauvais indice ! Index: " + std::to_string(i) +
+          " mais ID: " + std::to_string(id));
+    }
+
+    Coord pos = c.getPosition();
+    if (!grille.contientNid(pos)) {
+      throw std::logic_error("Incohérence entre la position de la colonie " +
+                             std::to_string(id) + " et la grille");
+    }
+  }
+
   for (int i = 0; i < TAILLE_GRILLE; i++) {
     for (int j = 0; j < TAILLE_GRILLE; j++) {
       Coord pos(i, j);
@@ -184,6 +209,38 @@ void Jeu::verifieIntegrite() const {
         if (termites.at(idTermite).getPosition() != pos) {
           throw std::logic_error("Incohérence entre la position du termite " +
                                  std::to_string(idTermite) + " et la grille");
+
+          if (grille.contientNid(pos)) {
+            int idColonie = grille.proprietaireCase(pos);
+            if (idColonie < 0 || idColonie >= (int)colonies.size()) {
+              throw std::logic_error(
+                  "Grille contient un nid avec un id de colonie invalide : " +
+                  std::to_string(idColonie));
+            }
+            if (colonies.at(idColonie).getPosition() != pos) {
+              throw std::logic_error(
+                  "Incohérence entre la position du nid de la colonie " +
+                  std::to_string(idColonie) + " et la grille");
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void Jeu::calculerScores() {
+  for (Colonie &colonie : colonies) {
+    colonie.reinitialiserScore();
+  }
+
+  for (int i = 0; i < TAILLE_GRILLE; i++) {
+    for (int j = 0; j < TAILLE_GRILLE; j++) {
+      Coord c(i, j);
+
+      if (grille.contientBrindille(c)) {
+        if (grille.proprietaireCase(c) != 1) {
+          colonies[grille.proprietaireCase(c)].incrementerScore();
         }
       }
     }

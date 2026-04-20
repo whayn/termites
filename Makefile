@@ -2,7 +2,7 @@ CXX = clang++
 CXXFLAGS = -Wall -Wextra -std=c++11 -Iinclude -fPIE
 LDFLAGS= -pie
 
-EXEC_FILES = tests projet main
+EXEC_FILES = tests main
 
 all: $(EXEC_FILES)
 
@@ -19,9 +19,6 @@ test.o: src/test.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 tests: test.o Coord.o Grille.o Termite.o Jeu.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-
-projet: projet.o Coord.o Grille.o Termite.o Jeu.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 main: main.o Coord.o Grille.o Termite.o Jeu.o

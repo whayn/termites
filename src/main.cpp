@@ -10,9 +10,9 @@
 int main() {
   srand(time(NULL));
 
-  int nbTermites = 20;
-  float densiteBrindilles = 0.05;
-  Jeu jeu(nbTermites, densiteBrindilles);
+  int nbTermites = 5;
+  float densiteBrindilles = 0.1;
+  Jeu jeu(nbTermites, densiteBrindilles, 4);
   int nbPasse = 1;
   std::string saisie;
 
@@ -36,8 +36,6 @@ int main() {
 
     for (int i = 0; i < nbPasse; i++) {
       jeu.etapeSuivante();
-      system("clear");
-      std::cout << jeu;
     }
   }
 

@@ -63,8 +63,8 @@ int Grille::proprietaireCase(Coord c) const {
 }
 
 bool Grille::estVide(Coord c) const {
-  return cases[c.getLig()][c.getCol()].idTermite == -1 &&
-         !(cases[c.getLig()][c.getCol()].type == TypeCase::BRINDILLE);
+  return cases[c.getLig()][c.getCol()].type == TypeCase::VIDE &&
+         cases[c.getLig()][c.getCol()].idTermite == -1;
 }
 
 std::ostream &Grille::print(std::ostream &out) const {
@@ -152,5 +152,26 @@ TEST_CASE("Test de la classe Grille") {
     g.enleveBrindille(c);
     g.poseTermite(c, 99);
     CHECK(g.estVide(c) == false);
+  }
+
+  SUBCASE("Test de poseNid et contientNid") {
+    Coord c(5, 5);
+    CHECK(g.contientNid(c) == false);
+
+    g.poseNid(c, 1);
+    CHECK(g.contientNid(c) == true);
+    CHECK(g.proprietaireCase(c) == 1);
+    CHECK(g.estVide(c) == false);
+
+    // On ne doit pas pouvoir poser un nid sur une case déjà occupée
+    CHECK_THROWS_AS(g.poseNid(c, 2), std::logic_error);
+
+    Coord c2(6, 6);
+    g.poseBrindille(c2);
+    CHECK_THROWS_AS(g.poseNid(c2, 1), std::logic_error);
+
+    Coord c3(7, 7);
+    g.poseTermite(c3, 1);
+    CHECK_THROWS_AS(g.poseNid(c3, 1), std::logic_error);
   }
 }

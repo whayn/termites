@@ -14,6 +14,7 @@ private:
   int numeroEtape;
 
   void verifieIntegrite() const;
+  void calculerScores();
 
 public:
   Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.05,

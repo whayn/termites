@@ -26,6 +26,8 @@ public:
   std::string getCouleur() const { return couleur; }
 
   void incrementerScore() { score++; }
+  void decrementerScore() { score--; }
+  void reinitialiserScore() { score = 0; }
 };
 
 #endif
