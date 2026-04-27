@@ -20,6 +20,10 @@ public:
   Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.05,
       int nbColonies = 2);
 
+  const std::vector<Termite> &getTermites() const { return termites; }
+  const std::vector<Colonie> &getColonies() const { return colonies; }
+  const Grille &getGrille() const { return grille; }
+
   void etapeSuivante();
 
   std::ostream &afficheJeu(std::ostream &out) const;

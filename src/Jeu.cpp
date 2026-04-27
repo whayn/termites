@@ -113,6 +113,7 @@ void Jeu::etapeSuivante() {
   }
 
   verifieIntegrite();
+  calculerScores();
   numeroEtape++;
 }
 
@@ -154,7 +155,6 @@ std::ostream &operator<<(std::ostream &out, const Jeu &j) {
 }
 
 void Jeu::verifieIntegrite() const {
-
   for (int i = 0; i < (int)termites.size(); i++) {
     const Termite &t = termites[i];
     int id = t.getId();
@@ -169,13 +169,13 @@ void Jeu::verifieIntegrite() const {
     if (grille.numéroTermite(pos) != id) {
       throw std::logic_error("Incohérence entre la position du termite " +
                              std::to_string(id) + " et la grille");
+    }
 
-      int idCol = t.getIdColonie();
-      if (idCol < 0 || idCol >= (int)colonies.size()) {
-        throw std::logic_error("Termite " + std::to_string(id) +
-                               " a une colonie avec un id " +
-                               std::to_string(idCol) + " invalide");
-      }
+    int idCol = t.getIdColonie();
+    if (idCol < 0 || idCol >= (int)colonies.size()) {
+      throw std::logic_error("Termite " + std::to_string(id) +
+                             " a une colonie avec un id " +
+                             std::to_string(idCol) + " invalide");
     }
   }
 
@@ -239,7 +239,7 @@ void Jeu::calculerScores() {
       Coord c(i, j);
 
       if (grille.contientBrindille(c)) {
-        if (grille.proprietaireCase(c) != 1) {
+        if (grille.proprietaireCase(c) != -1) {
           colonies[grille.proprietaireCase(c)].incrementerScore();
         }
       }
