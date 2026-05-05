@@ -4,8 +4,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "parametres.hpp"
-
 // Coord
 Coord::Coord(int lig, int col) : lig(lig), col(col) {
   if (lig < 0 || col < 0) {

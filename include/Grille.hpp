@@ -10,6 +10,7 @@ struct Case {
   TypeCase type;
   int idColonie; // -1 si pas de propriétaire, sinon id de la colonie
   int idTermite; // -1 si aucune termite
+  std::vector<float> pheromones; // Un tableau de phéromones, une par colonie
 
   Case() : type(TypeCase::VIDE), idTermite(-1) {}
 };
@@ -40,6 +41,12 @@ public:
   int getTaille() const { return taille; }
 
   bool estVide(Coord c) const;
+
+  // Gestion des phéromones
+  void initialiserPheromones(int nbColonies);
+  void deposerPheromone(Coord c, int idColonie, float quantite);
+  float getIntensitePheromone(Coord c, int idColonie) const;
+  void evaporerPheromones(float taux);
 
   // Plus tard on réalisera une fonction afficheJeu
   std::ostream &print(std::ostream &out) const;

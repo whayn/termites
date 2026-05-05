@@ -1,6 +1,6 @@
 #include "Termite.hpp"
 #include "Coord.hpp"
-#include "parametres.hpp"
+
 #include <cstdlib>
 #include <doctest.h>
 #include <stdexcept>

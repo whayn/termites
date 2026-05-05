@@ -3,7 +3,7 @@
 #include "Couleurs.hpp"
 #include "Grille.hpp"
 #include "Termite.hpp"
-#include "parametres.hpp"
+
 #include "utilitaires.hpp"
 #include <cstdlib>
 #include <doctest.h>
@@ -11,8 +11,11 @@
 #include <vector>
 
 Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
-         int tailleGrille)
-    : grille(tailleGrille), numeroEtape(0) {
+         int tailleGrille, float tauxEvaporationPheromones,
+         float quantitePheromone)
+    : grille(tailleGrille), numeroEtape(0),
+      tauxEvaporationPheromones(tauxEvaporationPheromones),
+      quantitePheromone(quantitePheromone) {
 
   if (nbColonies > tailleGrille * tailleGrille / 8) {
     throw std::invalid_argument(
@@ -77,6 +80,9 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
     grille.poseNid(colonie.getPosition(), colonie.getId());
   }
 
+  // Initialisation des phéromones
+  grille.initialiserPheromones(nbColonies);
+
   // Placement des termites
   int idTermite = 0;
 
@@ -110,8 +116,16 @@ void Jeu::etapeSuivante() {
 
   melanger(ordreDePassage);
 
+  grille.evaporerPheromones(tauxEvaporationPheromones);
+
   for (int id : ordreDePassage) {
-    termites[id].vieTermite(grille);
+    Termite &t = termites[id];
+    t.vieTermite(grille);
+
+    if (t.porteBrindille()) {
+      grille.deposerPheromone(t.getPosition(), t.getIdColonie(),
+                              quantitePheromone);
+    }
   }
 
   verifieIntegrite();

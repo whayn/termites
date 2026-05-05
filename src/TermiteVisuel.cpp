@@ -1,6 +1,6 @@
 #include "TermiteVisuel.hpp"
 #include "GestionnaireSprites.hpp"
-#include "parametres.hpp"
+
 #include "raylib.h"
 #include <algorithm>
 #include <raymath.h>

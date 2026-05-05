@@ -1,24 +1,77 @@
 #include "Application.hpp"
+#include "Colonie.hpp"
 #include "Coord.hpp"
 #include "GestionnaireSprites.hpp"
 #include "Jeu.hpp"
 #include "TermiteVisuel.hpp"
 #include "imgui.h"
 #include "parametres.hpp"
+#include "raymath.h"
 #include "utilitaires.hpp"
+#include <cmath>
 #include <raylib.h>
 #include <rlImGui.h>
 #include <vector>
 
-Application::Application()
-    : jeu(nullptr), etatCourant(EtatApp::MENU_PRINCIPAL), chronometre(0),
-      vitesseSimulation(1.f), enPause(false), gestionnaireSpritesPetit(16),
-      gestionnaireSpritesMoyen(32) {
+const AppConfig JEU_PAR_DEFAUT = {
+    20,
+    0.08f,
+    3,
+    50,
+};
 
-  config = {.nbTermitesParColonie = 20,
-            .densiteBrindilles = 0.05f,
-            .nbColonies = 2,
-            .tailleGrille = 20};
+void ConfigurerInterface() {
+  ImGuiStyle &style = ImGui::GetStyle();
+
+  // padding et arrondis
+  style.WindowRounding = 12.0f;
+  style.FrameRounding = 8.0f;
+  style.GrabRounding = 10.0f;
+  style.PopupRounding = 8.0f;
+  style.WindowPadding = ImVec2(15, 15);
+  style.FramePadding = ImVec2(10, 5);
+  style.ItemSpacing = ImVec2(10, 8);
+  style.WindowBorderSize = 0.0f;
+
+  // Couleurs
+  ImVec4 *colors = style.Colors;
+
+  // Fond des fenêtres (Marron terre très sombre et un peu transparent)
+  colors[ImGuiCol_WindowBg] = ImVec4(0.18f, 0.14f, 0.12f, 0.85f);
+
+  // Titres (Marron un peu plus clair)
+  colors[ImGuiCol_TitleBg] = ImVec4(0.25f, 0.20f, 0.17f, 1.00f);
+  colors[ImGuiCol_TitleBgActive] = ImVec4(0.35f, 0.28f, 0.24f, 1.00f);
+
+  // Widgets (Boutons, Sliders, Checkboxes) : Vert Mousse
+  colors[ImGuiCol_FrameBg] = ImVec4(0.24f, 0.35f, 0.20f, 0.70f);
+  colors[ImGuiCol_FrameBgHovered] = ImVec4(0.30f, 0.45f, 0.25f, 1.00f);
+  colors[ImGuiCol_FrameBgActive] = ImVec4(0.20f, 0.30f, 0.15f, 1.00f);
+
+  // Boutons : Vert Forêt
+  colors[ImGuiCol_Button] = ImVec4(0.24f, 0.45f, 0.20f, 0.80f);
+  colors[ImGuiCol_ButtonHovered] = ImVec4(0.35f, 0.60f, 0.30f, 1.00f);
+  colors[ImGuiCol_ButtonActive] = ImVec4(0.15f, 0.35f, 0.10f, 1.00f);
+
+  // Sliders & Scrollbars : Lichen
+  colors[ImGuiCol_SliderGrab] = ImVec4(0.40f, 0.65f, 0.30f, 0.80f);
+  colors[ImGuiCol_SliderGrabActive] = ImVec4(0.50f, 0.80f, 0.40f, 1.00f);
+  colors[ImGuiCol_CheckMark] = ImVec4(0.50f, 0.80f, 0.40f, 1.00f);
+
+  // En-têtes (Collapsing Headers)
+  colors[ImGuiCol_Header] = ImVec4(0.35f, 0.28f, 0.24f, 0.80f);
+  colors[ImGuiCol_HeaderHovered] = ImVec4(0.45f, 0.38f, 0.34f, 1.00f);
+  colors[ImGuiCol_HeaderActive] = ImVec4(0.25f, 0.18f, 0.14f, 1.00f);
+
+  // Texte
+  colors[ImGuiCol_Text] = ImVec4(0.95f, 0.90f, 0.85f, 1.00f); // Crème/Off-white
+}
+
+Application::Application()
+    : jeu(nullptr), etatCourant(EtatApp::MENU_PRINCIPAL),
+      gestionnaireSpritesPetit(TAILLE_TUILE),
+      gestionnaireSpritesMoyen(TAILLE_TUILE * 2), chronometre(0),
+      vitesseSimulation(1.f), enPause(false), config(JEU_PAR_DEFAUT) {
 
   // Couleurs des colonies
   couleurs = {
@@ -33,13 +86,11 @@ Application::Application()
   SetTargetFPS(60);
   // Initialisation d'ImGui
   rlImGuiSetup(true);
+  ConfigurerInterface();
 
-  // Caméra
-  camera = {.offset = {400, 400},
-            .target = {(config.tailleGrille * TAILLE_TUILE) / 2.0f,
-                       (config.tailleGrille * TAILLE_TUILE) / 2.0f},
-            .rotation = 0,
-            .zoom = 800.f / (config.tailleGrille * TAILLE_TUILE)};
+  // Lancement du jeu
+  camera = Camera2D{};
+  reinitialiserJeu(JEU_PAR_DEFAUT, true);
 
   // Sprites
   // Sol
@@ -69,6 +120,7 @@ Application::Application()
 
   // Nid
   gestionnaireSpritesMoyen.ajouter("NID", 0, 0);
+  gestionnaireSpritesMoyen.ajouter("NID_MASQUE", 0, 1);
 
   // Chargement des textures
   textureSol = LoadTexture("assets/Sprite_Sol.png");
@@ -80,6 +132,8 @@ Application::Application()
 Application::~Application() {
   UnloadTexture(textureSol);
   UnloadTexture(textureTermites);
+  UnloadTexture(textureBrindille);
+  UnloadTexture(textureNid);
 
   rlImGuiShutdown();
   CloseWindow();
@@ -96,10 +150,13 @@ void Application::executer() {
 
     ClearBackground(DARKGRAY);
 
-    if (etatCourant == EtatApp::SIMULATION) {
-      BeginMode2D(camera);
-      dessinerGrille();
-      EndMode2D();
+    BeginMode2D(camera);
+    dessinerGrille();
+    EndMode2D();
+
+    if (etatCourant == EtatApp::MENU_PRINCIPAL) {
+      DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
+                    ColorAlpha(BLACK, 0.6f));
     }
 
     rlImGuiBegin();
@@ -114,24 +171,79 @@ void Application::executer() {
 }
 
 void Application::gererEntrees() {
+  if (etatCourant == EtatApp::SIMULATION) {
+    float largeurEcran = (float)GetScreenWidth();
+    float hauteurEcran = (float)GetScreenHeight();
 
-  // Zoom
-  float zoomChange = GetMouseWheelMove() * 0.1f;
-  if (zoomChange != 0) {
-    camera.zoom += zoomChange;
-    camera.zoom = std::max(0.1f, std::min(camera.zoom, 3.f));
-  }
+    float tailleMonde = config.tailleGrille * TAILLE_TUILE;
 
-  // Raccourcis clavier
-  if (IsKeyPressed(KEY_SPACE)) {
-    enPause = !enPause;
-  }
+    // Zoom
+    float changementZoom = GetMouseWheelMove() * 0.1f;
+    if (changementZoom != 0) {
+      camera.zoom += changementZoom;
+    }
 
-  // Panning
-  if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-    Vector2 mouseDelta = GetMouseDelta();
-    camera.target.x -= mouseDelta.x / camera.zoom;
-    camera.target.y -= mouseDelta.y / camera.zoom;
+    float zoomMin =
+        std::max(largeurEcran / tailleMonde, hauteurEcran / tailleMonde);
+
+    if (camera.zoom < zoomMin)
+      camera.zoom = zoomMin;
+    if (camera.zoom > 3.0f)
+      camera.zoom = 3.0f;
+
+    // Panning
+    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+      Vector2 mouseDelta = GetMouseDelta();
+      camera.target.x -= mouseDelta.x / camera.zoom;
+      camera.target.y -= mouseDelta.y / camera.zoom;
+    }
+
+    // On garde la caméra dans notre bounding box
+    // On calcule l'emprise de la caméra dans le monde
+    // camera.offset est {400, 400}, soit le centre de l'écran
+    float moitieLargeurVue = camera.offset.x / camera.zoom;
+    float moitieHauteurVue = camera.offset.y / camera.zoom;
+
+    // On bloque la Target pour que les bords de la vue ne dépassent jamais [0,
+    // tailleMonde]
+    if (camera.target.x < moitieLargeurVue)
+      camera.target.x = moitieLargeurVue;
+
+    if (camera.target.x >
+        tailleMonde - (largeurEcran - camera.offset.x) / camera.zoom)
+      camera.target.x =
+          tailleMonde - (largeurEcran - camera.offset.x) / camera.zoom;
+
+    if (camera.target.y < moitieHauteurVue)
+      camera.target.y = moitieHauteurVue;
+
+    if (camera.target.y >
+        tailleMonde - (hauteurEcran - camera.offset.y) / camera.zoom)
+      camera.target.y =
+          tailleMonde - (hauteurEcran - camera.offset.y) / camera.zoom;
+
+    // Raccourcis clavier
+    if (IsKeyPressed(KEY_SPACE)) {
+      enPause = !enPause;
+    }
+
+    // Inspection
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
+      idTermiteInspecte = -1; // Reset
+
+      for (const auto &rendu : rendusTermites) {
+        Vector2 termitePos = {
+            rendu.getPosArrivee().x * TAILLE_TUILE + (TAILLE_TUILE / 2.0f),
+            rendu.getPosArrivee().y * TAILLE_TUILE + (TAILLE_TUILE / 2.0f)};
+        float dist = Vector2Distance(mouseWorldPos, termitePos);
+        if (dist < 15.0f) { // Si on clique assez près
+          idTermiteInspecte = rendu.getIdTermite();
+
+          break;
+        }
+      }
+    }
   }
 }
 
@@ -139,18 +251,51 @@ void Application::mettreAJourLogique() {
   if (enPause || jeu == nullptr)
     return;
 
+  if (etatCourant == EtatApp::MENU_PRINCIPAL) {
+    camera.rotation += 0.005f;
+  }
+
   // Si vitesse = 2, le délai devient 0.25s
   float delaiBase = 0.5f;
   float delaiReel = delaiBase / vitesseSimulation;
 
   float dt = GetFrameTime();
-  chronometre += dt;
 
+  // Logique Caméra
+  if (idTermiteInspecte != -1) {
+    for (const auto &rendu : rendusTermites) {
+      if (rendu.getIdTermite() == idTermiteInspecte) {
+        Vector2 cible = {
+            rendu.getPosArrivee().x * TAILLE_TUILE + (TAILLE_TUILE / 2.0f),
+            rendu.getPosArrivee().y * TAILLE_TUILE + (TAILLE_TUILE / 2.0f)};
+
+        // Lerp du zoom vers la target
+        camera.target.x += (cible.x - camera.target.x) * 5.0f * dt;
+        camera.target.y += (cible.y - camera.target.y) * 5.0f * dt;
+        camera.zoom += (4.0f - camera.zoom) * 3.0f * dt; // Zoom sur le termite
+        break;
+      }
+    }
+  } else if (etatCourant == EtatApp::MENU_PRINCIPAL) {
+    camera.rotation += 0.05f * dt; // Rotation plus fluide
+  }
+
+  chronometre += dt;
   if (chronometre >= delaiReel) {
     jeu->etapeSuivante();
     synchroniserVisuels();
     chronometre -= delaiReel;
     compteurEtapes++;
+
+    // Graphique de l'évolution des scores
+    for (int i = 0; i < (int)jeu->getColonies().size(); i++) {
+      if ((int)historiqueScores.size() <= i)
+        historiqueScores.push_back({});
+      historiqueScores[i].push_back((float)jeu->getColonies()[i].getScore());
+      if ((int)historiqueScores[i].size() > maxHistorique) {
+        historiqueScores[i].erase(historiqueScores[i].begin());
+      }
+    }
   }
 
   for (TermiteVisuel &rendu : rendusTermites) {
@@ -159,107 +304,223 @@ void Application::mettreAJourLogique() {
 }
 
 void Application::dessinerGrille() {
+  // ORigine du sprite au millieu pour les rotations
   Vector2 origine = {TAILLE_TUILE / 2, TAILLE_TUILE / 2};
 
-  // Sol
+  // Fond + Brindilles
   for (int i = 0; i < config.tailleGrille; i++) {
     for (int j = 0; j < config.tailleGrille; j++) {
       CaseDecor &cd = mapDecor[i][j];
-      std::string nomSprite = "SOL_VIDE";
-      if (cd.idTexture == 1)
-        nomSprite = "SOL_RACINE_1";
-      else if (cd.idTexture == 2)
-        nomSprite = "SOL_RACINE_2";
-      else if (cd.idTexture == 3)
-        nomSprite = "SOL_CAILLOU_1";
-      else if (cd.idTexture == 4)
-        nomSprite = "SOL_CAILLOU_2";
 
-      Rectangle source = gestionnaireSpritesPetit.getRectangle(nomSprite);
+      Rectangle destFond = {j * TAILLE_TUILE, i * TAILLE_TUILE, TAILLE_TUILE,
+                            TAILLE_TUILE};
+      DrawRectangleRec(destFond, cd.couleurFond);
 
-      Rectangle dest = {j * TAILLE_TUILE + origine.x,
-                        i * TAILLE_TUILE + origine.y, TAILLE_TUILE,
-                        TAILLE_TUILE};
+      Rectangle destCentre = {j * TAILLE_TUILE + origine.x,
+                              i * TAILLE_TUILE + origine.y, TAILLE_TUILE,
+                              TAILLE_TUILE};
 
-      DrawTexturePro(textureSol, source, dest, origine, cd.angle, WHITE);
+      // Props
+      if (cd.nomSprite != "SOL_VIDE") {
+        Rectangle source = gestionnaireSpritesPetit.getRectangle(cd.nomSprite);
 
-      if (jeu->getGrille().contientBrindille(Coord(i, j))) {
-        DrawRectangle(j * TAILLE_TUILE + origine.x - 5,
-                      i * TAILLE_TUILE + origine.y - 5, 10, 10, BROWN);
+        if (cd.flipH)
+          source.width = -source.width;
+        if (cd.flipV)
+          source.height = -source.height;
+
+        DrawTexturePro(textureSol, source, destCentre, origine, cd.angle,
+                       WHITE);
       }
-      if (jeu->getGrille().contientNid(Coord(i, j))) {
-        DrawCircle(j * TAILLE_TUILE + origine.x, i * TAILLE_TUILE + origine.y,
-                   10,
-                   couleurs[jeu->getGrille().proprietaireCase(Coord(i, j)) %
-                            (int)couleurs.size()]);
+
+      // Brindilles
+      if (jeu->getGrille().contientBrindille(Coord(i, j))) {
+        Rectangle source = gestionnaireSpritesPetit.getRectangle("BRINDILLE");
+
+        if (cd.flipHBrindille)
+          source.width = -source.width;
+        if (cd.flipVBrindille)
+          source.height = -source.height;
+
+        DrawTexturePro(textureBrindille, source, destCentre, origine,
+                       cd.angleBrindille, WHITE);
       }
     }
   }
 
-  // Termites
+  // Nids
+  Vector2 origineNid = {TAILLE_TUILE, TAILLE_TUILE}; // Centre de 2x2 tuiles
+
+  for (const Colonie &colonie : jeu->getColonies()) {
+    Coord pos = colonie.getPosition();
+    Color couleurNid = couleurs[colonie.getId() % (int)couleurs.size()];
+
+    Rectangle sourceNid = gestionnaireSpritesMoyen.getRectangle("NID");
+
+    Rectangle sourceMasqueNid =
+        gestionnaireSpritesMoyen.getRectangle("NID_MASQUE");
+
+    Rectangle destNid = {pos.getCol() * TAILLE_TUILE + origineNid.x,
+                         pos.getLig() * TAILLE_TUILE + origineNid.y,
+                         TAILLE_TUILE * 2.0f, TAILLE_TUILE * 2.0f};
+
+    DrawTexturePro(textureNid, sourceNid, destNid, origineNid, 0.0f, WHITE);
+    DrawTexturePro(textureNid, sourceMasqueNid, destNid, origineNid, 0.0f,
+                   couleurNid);
+  }
+
   for (const TermiteVisuel &rendu : rendusTermites) {
     rendu.dessiner(textureTermites, gestionnaireSpritesPetit, TAILLE_TUILE);
+  }
+
+  // Si on inspecte un termite, on dessine un cadre autour de lui
+  if (idTermiteInspecte != -1) {
+    for (const auto &rendu : rendusTermites) {
+      if (rendu.getIdTermite() == idTermiteInspecte) {
+        // On force les coordonnées en entiers pour éviter le flou
+        int px = (int)(rendu.getPosArrivee().x * TAILLE_TUILE);
+        int py = (int)(rendu.getPosArrivee().y * TAILLE_TUILE);
+        int t = (int)TAILLE_TUILE;
+
+        // Couleur pulsée
+        Color c = WHITE;
+
+        // On dessine 4 coins de 3 pixels de long
+        // Coin haut-gauche
+        DrawRectangle(px - 1, py - 1, 3, 1, c);
+        DrawRectangle(px - 1, py, 1, 2, c);
+
+        // Coin haut-droite
+        DrawRectangle(px + t - 2, py - 1, 3, 1, c);
+        DrawRectangle(px + t, py, 1, 2, c);
+
+        // Coin bas-gauche
+        DrawRectangle(px - 1, py + t, 3, 1, c);
+        DrawRectangle(px - 1, py + t - 2, 1, 2, c);
+
+        // Coin bas-droite
+        DrawRectangle(px + t - 2, py + t, 3, 1, c);
+        DrawRectangle(px + t, py + t - 2, 1, 2, c);
+
+        break;
+      }
+    }
   }
 }
 
 void Application::dessinerMenu() {
-  // Centrons le menu
-  ImGui::SetNextWindowPos(ImVec2(400, 400), ImGuiCond_Appearing,
-                          ImVec2(0.5f, 0.5f));
-  ImGui::Begin("Menu Principal", nullptr,
-               ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
-  ImGui::Text("Termites");
+  float largeurEcran = (float)GetScreenWidth();
+  float hauteurEcran = (float)GetScreenHeight();
+
+  // Plein écran
+  ImGui::SetNextWindowPos(ImVec2(0, 0));
+  ImGui::SetNextWindowSize(ImVec2(largeurEcran, hauteurEcran));
+  ImGui::Begin("MenuFond", nullptr,
+               ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground);
+
+  // Centrage du contenu
+  ImGui::SetNextWindowPos(ImVec2(largeurEcran / 2.0f, hauteurEcran / 2.0f),
+                          ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+  ImGui::SetNextWindowSize(ImVec2(450, 0)); // Largeur fixe, hauteur auto
+
+  ImGui::Begin("Menu", nullptr,
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+  // Titre
+  ImGui::Spacing();
+
+  ImGui::TextColored(ImVec4(0.4f, 0.6f, 0.3f, 1.0f), "Projet Termites");
   ImGui::Separator();
+  ImGui::Spacing();
 
-  // Configuration de la simulation
-  ImGui::InputInt("Nombre de colonies", &config.nbColonies, 1, 5);
-  ImGui::InputInt("Termites par colonie", &config.nbTermitesParColonie, 1, 5);
-  ImGui::SliderFloat("Densité de brindilles", &config.densiteBrindilles, 0.f,
-                     1.f);
-  ImGui::InputInt("Taille de la grille", &config.tailleGrille, 1, 10);
+  // Configuration
+  ImGui::Text("Configuration ");
+  ImGui::Spacing();
+  ImGui::SliderInt("Colonies", &config.nbColonies, 1, 8);
+  ImGui::SliderInt("Population", &config.nbTermitesParColonie, 5, 200);
+  ImGui::SliderFloat("Brindilles", &config.densiteBrindilles, 0.01f, 0.3f,
+                     "%.2f");
+  ImGui::SliderInt("Taille Grille", &config.tailleGrille, 10, 200);
 
-  if (ImGui::Button("Lancer la simulation")) {
-    if (jeu != nullptr) {
-      delete jeu;
-      rendusTermites.clear();
-    }
+  ImGui::Spacing();
+  ImGui::Separator();
+  ImGui::Spacing();
 
-    jeu = new Jeu(config.nbTermitesParColonie, config.densiteBrindilles,
-                  config.nbColonies, config.tailleGrille);
-
-    initialiserDecor();
-    synchroniserVisuels();
-
+  // LAncement
+  if (ImGui::Button("Lancer la simulation", ImVec2(-1, 50))) {
+    reinitialiserJeu(config, false);
     etatCourant = EtatApp::SIMULATION;
     enPause = false;
   }
+
+  ImGui::End();
   ImGui::End();
 }
 
 void Application::dessinerHUD() {
-  ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-  ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-  ImGui::Text("Étape : %d", compteurEtapes);
+  float largeurEcran = (float)GetScreenWidth();
+  float hauteurEcran = (float)GetScreenHeight();
+
+  ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+  ImGui::Begin("Statistiques", nullptr,
+               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                   ImGuiWindowFlags_NoMove);
   for (const Colonie &colonie : jeu->getColonies()) {
-    ImGui::Text("Colonie %d - Score : %d", colonie.getId(), colonie.getScore());
+    ImGui::TextColored(ImVec4(0.8f, 0.5f, 0.2f, 1.0f), "Colonie %d",
+                       colonie.getId());
+    ImGui::SameLine();
+    ImGui::Text(": %d brindilles", colonie.getScore());
   }
   ImGui::End();
 
-  ImGui::SetNextWindowPos(ImVec2(10, 300), ImGuiCond_FirstUseEver);
-  ImGui::Begin("Contrôles", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-  ImGui::Text("Espace : Pause/Play");
-  if (ImGui::Button(enPause ? "Play" : "Pause", ImVec2(100, 30))) {
+  ImGui::SetNextWindowPos(ImVec2(10, 130), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(300, 0));
+  ImGui::Begin("Graphiques", nullptr,
+               ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                   ImGuiWindowFlags_AlwaysAutoResize);
+  for (size_t i = 0; i < historiqueScores.size(); i++) {
+    char label[32];
+    sprintf(label, "Colonie %zu", i);
+    if (!historiqueScores[i].empty()) {
+      ImGui::PlotLines(label, historiqueScores[i].data(),
+                       historiqueScores[i].size(), 0, nullptr, 0.0f, 50.0f,
+                       ImVec2(0, 40));
+    }
+  }
+  ImGui::End();
+
+  if (idTermiteInspecte != -1) {
+    const Termite &t = jeu->getTermites()[idTermiteInspecte];
+    ImGui::SetNextWindowPos(ImVec2(largeurEcran - 260, 10), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(250, 0));
+    ImGui::Begin("Inspecteur de Termite", nullptr,
+                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::Text("ID : %d (Colonie %d)", t.getId(), t.getIdColonie());
+    ImGui::Separator();
+    ImGui::Text("État : %s", t.porteBrindille() ? "Porte brindille" : "À vide");
+    ImGui::ProgressBar((float)t.getSablier() / t.getDureeSablier(),
+                       ImVec2(-1, 0), "Sablier");
+    if (ImGui::Button("Fermer l'inspection", ImVec2(-1, 0)))
+      idTermiteInspecte = -1;
+    ImGui::End();
+  }
+
+  ImGui::SetNextWindowPos(ImVec2(10, hauteurEcran - 100), ImGuiCond_Always);
+  ImGui::Begin("Simulation", nullptr,
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                   ImGuiWindowFlags_AlwaysAutoResize);
+
+  if (ImGui::Button(enPause ? " Play " : " Pause ")) {
     enPause = !enPause;
   }
+  ImGui::SameLine();
+  ImGui::SliderFloat("Vitesse", &vitesseSimulation, 0.1f, 25.0f, "%.1fx");
 
-  ImGui::SliderFloat("Vitesse Tick", &vitesseSimulation, 0.01f, 20.0f);
+  if (ImGui::Button("Quitter")) {
+    reinitialiserJeu(JEU_PAR_DEFAUT, true);
 
-  ImGui::Separator();
-
-  if (ImGui::Button("Quitter vers le Menu")) {
     etatCourant = EtatApp::MENU_PRINCIPAL;
   }
-
   ImGui::End();
 }
 
@@ -292,25 +553,110 @@ void Application::synchroniserVisuels() {
 }
 
 void Application::initialiserDecor() {
-  mapDecor.assign(
-      config.tailleGrille,
-      std::vector<CaseDecor>(config.tailleGrille)) // On initialise la map de
-                                                   // décor avec des cases vides
-      ;
+  mapDecor.assign(config.tailleGrille,
+                  std::vector<CaseDecor>(
+                      config.tailleGrille)); // On remplit la map de décor
+                                             // avec des cases vides
+
+  int offsetX = GetRandomValue(0, 1000);
+  int offsetY = GetRandomValue(0, 1000);
+  Image noise = GenImagePerlinNoise(config.tailleGrille, config.tailleGrille,
+                                    offsetX, offsetY, 4.0f);
+  Color *pixels = LoadImageColors(noise);
+
+  Color colHumide = {78, 67, 56, 255};   // Terre sombre et grasse
+  Color colNormal = {119, 98, 77, 255};  // Terre classique
+  Color colAride = {161, 137, 113, 255}; // Terre sèche / Sableuse
+
   for (int i = 0; i < config.tailleGrille; i++) {
     for (int j = 0; j < config.tailleGrille; j++) {
-      int r = GetRandomValue(0, 100);
-      if (r < 95) {
-        mapDecor[i][j].idTexture = 0; // Texture de base
-      } else if (r < 98) {
-        mapDecor[i][j].idTexture =
-            GetRandomValue(0, 100) < 50 ? 1 : 2; // Racine
-      } else {
-        mapDecor[i][j].idTexture =
-            GetRandomValue(0, 100) < 99 ? 4 : 3; // Caillou normal et rare
+      float perlinValue = pixels[i * config.tailleGrille + j].r;
+
+      CaseDecor &cd = mapDecor[i][j];
+      std::string sprite = "SOL_VIDE";
+      int r = GetRandomValue(1, 100);
+
+      if (perlinValue < 90) { // Humide
+        cd.couleurFond = colHumide;
+        if (r <= 5)
+          sprite = "SOL_CHAMPI";
+        else if (r <= 10)
+          sprite = "SOL_MOUSSE";
+      } else if (perlinValue < 170) { // Normal
+        cd.couleurFond = colNormal;
+        if (r <= 3)
+          sprite = "SOL_RACINE_2";
+        else if (r <= 7)
+          sprite = "SOL_CAILLOU_1";
+        else if (r <= 10)
+          sprite = "SOL_RACINE_1";
+      } else { // Aride
+        cd.couleurFond = colAride;
+        if (r == 1)
+          sprite = "SOL_CAILLOU_RARE"; // Vraiment rare
+        else if (r <= 5)
+          sprite = "SOL_CAILLOU_1";
+        else if (r <= 10)
+          sprite = "SOL_CAILLOU_2";
       }
 
-      mapDecor[i][j].angle = GetRandomValue(0, 3) * 90.0f;
+      cd.nomSprite = sprite;
+      cd.angle = GetRandomValue(0, 3) * 90.0f;
+      cd.flipH = GetRandomValue(0, 1) == 1;
+      cd.flipV = GetRandomValue(0, 1) == 1;
+
+      cd.angleBrindille = GetRandomValue(0, 3) * 90.0f;
+      cd.flipHBrindille = GetRandomValue(0, 1) == 1;
+      cd.flipVBrindille = GetRandomValue(0, 1) == 1;
     }
+  }
+  UnloadImageColors(pixels);
+  UnloadImage(noise);
+}
+
+void Application::reinitialiserJeu(const AppConfig &nouvelleConfig,
+                                   bool pourMenu) {
+
+  // Supprimer l'ancien jeu et les rendus associés
+  if (jeu != nullptr) {
+    delete jeu;
+    rendusTermites.clear();
+  }
+
+  // Mise à jour de la configuration
+  config = nouvelleConfig;
+  jeu = new Jeu(config.nbTermitesParColonie, config.densiteBrindilles,
+                config.nbColonies, config.tailleGrille);
+
+  // Reinitialiser le décor et les rendus
+  initialiserDecor();
+  synchroniserVisuels();
+
+  // Réinitialiser les scores et la caméra
+  historiqueScores.clear();
+  for (int i = 0; i < config.nbColonies; i++) {
+    historiqueScores.push_back({});
+  }
+  chronometre = 0.f;
+  compteurEtapes = 0;
+  idTermiteInspecte = -1; // On désinspecte tout termite à la réinitialisation
+
+  // Réinitialiser la caméra pour centrer sur le monde
+  float largeurEcran = (float)GetScreenWidth();
+  float hauteurEcran = (float)GetScreenHeight();
+  float tailleMonde = config.tailleGrille * TAILLE_TUILE;
+
+  camera.target = {tailleMonde / 2.0f, tailleMonde / 2.0f};
+  camera.offset = {largeurEcran / 2.0f, hauteurEcran / 2.0f};
+  camera.rotation = 0.0f;
+
+  if (pourMenu) {
+    // Zoom correct pour le menu
+    camera.zoom =
+        std::sqrt(largeurEcran * largeurEcran + hauteurEcran * hauteurEcran) /
+        tailleMonde;
+  } else {
+    camera.zoom =
+        std::max(largeurEcran / tailleMonde, hauteurEcran / tailleMonde);
   }
 }

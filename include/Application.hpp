@@ -5,6 +5,7 @@
 #include "Jeu.hpp"
 #include "TermiteVisuel.hpp"
 #include <raylib.h>
+#include <vector>
 
 enum class EtatApp {
   MENU_PRINCIPAL,
@@ -24,11 +25,19 @@ struct CaseDecor {
   float angle;
   bool flipH;
   bool flipV;
+  float angleBrindille;
+  bool flipHBrindille;
+  bool flipVBrindille;
 };
 
 class Application {
 private:
   Jeu *jeu;
+
+  std::vector<std::vector<float>> historiqueScores;
+  int maxHistorique = 100; // Pour les graphs, nombre de points affichés
+
+  int idTermiteInspecte = -1; // -1 = personne
 
   EtatApp etatCourant;
   Camera2D camera;
@@ -63,7 +72,15 @@ private:
   void synchroniserVisuels(); // Met à jour les rendus des termites pour les
                               // faire correspondre à l'état du jeu
   void initialiserDecor();    // Précalcule le wang tiling pour les cases
-                              // de la grille
+  // de la grille
+
+  void reinitialiserJeu(
+      const AppConfig &nouvelleConfig,
+      bool pourMenu =
+          false); // Reinitialise le jeu avec une nouvelle configuration, et
+                  // réinitialise les éléments graphiques associés. Si pourMenu
+                  // est à true, on réinitialise aussi les éléments liés au menu
+                  // (ex: historique des scores)
 
   std::vector<Color> couleurs;
   std::vector<std::vector<CaseDecor>> mapDecor;

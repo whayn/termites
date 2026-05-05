@@ -13,12 +13,17 @@ private:
   std::vector<Colonie> colonies;
   int numeroEtape;
 
+  float tauxEvaporationPheromones;
+  float quantitePheromone;
+
   void verifieIntegrite() const;
   void calculerScores();
 
 public:
-  Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.05,
-      int nbColonies = 2, int tailleGrille = 20);
+  Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.08,
+      int nbColonies = 3, int tailleGrille = 50,
+      float tauxEvaporationPheromones = 0.005f,
+      float quantitePheromone = 0.15f);
 
   const std::vector<Termite> &getTermites() const { return termites; }
   const std::vector<Colonie> &getColonies() const { return colonies; }
