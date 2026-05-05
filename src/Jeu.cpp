@@ -10,10 +10,11 @@
 #include <stdexcept>
 #include <vector>
 
-Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
-    : grille(TAILLE_GRILLE), numeroEtape(0) {
+Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
+         int tailleGrille)
+    : grille(tailleGrille), numeroEtape(0) {
 
-  if (nbColonies > TAILLE_GRILLE * TAILLE_GRILLE / 8) {
+  if (nbColonies > tailleGrille * tailleGrille / 8) {
     throw std::invalid_argument(
         "Le nombre de colonies est trop élevé pour la taille de la grille");
   }
@@ -28,17 +29,19 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
   melanger(couleurs);
 
   // https://en.wikipedia.org/wiki/K-means%2B%2B#Improved_initialization_algorithm
-  Colonie premiereColonie(0,
-                          Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE),
-                          6, 0.1, couleurs[0]);
+  int plageCoord = grille.getTaille() - 3;
+  Colonie premiereColonie(
+      0, Coord(1 + rand() % plageCoord, 1 + rand() % plageCoord), 6, 0.1,
+      couleurs[0]);
   colonies.push_back(premiereColonie);
 
   for (int k = 1; k < nbColonies; k++) {
     std::vector<double> distanceCarrees;
+    std::vector<Coord> positionCandidat;
     double sommeDistances = 0;
 
-    for (int i = 0; i < TAILLE_GRILLE; i++) {
-      for (int j = 0; j < TAILLE_GRILLE; j++) {
+    for (int i = 1; i <= grille.getTaille() - 3; i++) {
+      for (int j = 1; j <= grille.getTaille() - 3; j++) {
         Coord c(i, j);
 
         double distPlusProche = -1;
@@ -50,6 +53,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
         }
 
         distanceCarrees.push_back(distPlusProche * distPlusProche);
+        positionCandidat.push_back(c);
         sommeDistances += (distPlusProche * distPlusProche);
       }
     }
@@ -60,9 +64,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
     for (int i = 0; i < (int)distanceCarrees.size(); i++) {
       cumul += distanceCarrees[i];
       if (cumul >= cible) {
-        int x = i / TAILLE_GRILLE;
-        int y = i % TAILLE_GRILLE;
-        Colonie nouvelleColonie(k, Coord(x, y), 6, 0.1,
+        Colonie nouvelleColonie(k, positionCandidat[i], 6, 0.1,
                                 couleurs[k % (int)couleurs.size()]);
         colonies.push_back(nouvelleColonie);
         break;
@@ -82,7 +84,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
     for (int i = 0; i < nbTermitesParColonie; i++) {
       Coord pos(0, 0);
       do {
-        pos = Coord(rand() % TAILLE_GRILLE, rand() % TAILLE_GRILLE);
+        pos = Coord(rand() % grille.getTaille(), rand() % grille.getTaille());
       } while (!grille.estVide(pos));
       grille.poseTermite(pos, idTermite);
       termites.push_back(Termite(idTermite, colonie.getId(), pos));
@@ -90,8 +92,8 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies)
     }
   }
 
-  for (int i = 0; i < TAILLE_GRILLE; i++) {
-    for (int j = 0; j < TAILLE_GRILLE; j++) {
+  for (int i = 0; i < grille.getTaille(); i++) {
+    for (int j = 0; j < grille.getTaille(); j++) {
       Coord c(i, j);
       if (grille.estVide(c) && rand() % 100 < (int)(densiteBrindilles * 100)) {
         grille.poseBrindille(c, -1);
@@ -121,8 +123,8 @@ std::ostream &Jeu::afficheJeu(std::ostream &out) const {
   out << Console::CYAN << "Étape " << Console::GRAS << numeroEtape << " :\n"
       << Console::RESET;
 
-  for (int i = 0; i < TAILLE_GRILLE; i++) {
-    for (int j = 0; j < TAILLE_GRILLE; j++) {
+  for (int i = 0; i < grille.getTaille(); i++) {
+    for (int j = 0; j < grille.getTaille(); j++) {
       Coord posCourante(i, j);
       int idTermite = grille.numéroTermite(posCourante);
       int idColonie = grille.proprietaireCase(posCourante);
@@ -196,8 +198,8 @@ void Jeu::verifieIntegrite() const {
     }
   }
 
-  for (int i = 0; i < TAILLE_GRILLE; i++) {
-    for (int j = 0; j < TAILLE_GRILLE; j++) {
+  for (int i = 0; i < grille.getTaille(); i++) {
+    for (int j = 0; j < grille.getTaille(); j++) {
       Coord pos(i, j);
       int idTermite = grille.numéroTermite(pos);
       if (idTermite != -1) {
@@ -234,8 +236,8 @@ void Jeu::calculerScores() {
     colonie.reinitialiserScore();
   }
 
-  for (int i = 0; i < TAILLE_GRILLE; i++) {
-    for (int j = 0; j < TAILLE_GRILLE; j++) {
+  for (int i = 0; i < grille.getTaille(); i++) {
+    for (int j = 0; j < grille.getTaille(); j++) {
       Coord c(i, j);
 
       if (grille.contientBrindille(c)) {

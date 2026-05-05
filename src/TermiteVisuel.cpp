@@ -1,4 +1,5 @@
 #include "TermiteVisuel.hpp"
+#include "GestionnaireSprites.hpp"
 #include "parametres.hpp"
 #include "raylib.h"
 #include <algorithm>
@@ -22,26 +23,25 @@ void TermiteVisuel::mettreAJour(float delta, float vitesseSimulation) {
   }
 }
 
-void TermiteVisuel::dessiner(Texture2D &texture, float tailleCase) const {
+void TermiteVisuel::dessiner(Texture2D &texture,
+                             const GestionnaireSprites &gestionnaireSprites,
+                             float tailleCase) const {
   bool estDiagonale =
       (cap == Direction::NORD_EST || cap == Direction::SUD_EST ||
        cap == Direction::SUD_OUEST || cap == Direction::NORD_OUEST);
 
-  int indexLigne = 0;
-  if (estDiagonale)
-    indexLigne += 1;
+  std::string nomBase = "TERMITE_";
+  nomBase += estDiagonale ? "DIAG" : "ORTHO";
   if (porteBrindille)
-    indexLigne += 2;
+    nomBase += "_BRINDILLE";
 
-  int indexLigneMasque = indexLigne + 4;
+  std::string nomMasque = nomBase + "_MASQUE";
 
-  Rectangle sourceBase = {frameCourante * TAILLE_TUILE,
-                          indexLigne * TAILLE_TUILE, TAILLE_TUILE,
-                          TAILLE_TUILE};
+  Rectangle sourceBase =
+      gestionnaireSprites.getRectangle(nomBase, frameCourante);
 
-  Rectangle sourceMasque = {frameCourante * TAILLE_TUILE,
-                            indexLigneMasque * TAILLE_TUILE, TAILLE_TUILE,
-                            TAILLE_TUILE};
+  Rectangle sourceMasque =
+      gestionnaireSprites.getRectangle(nomMasque, frameCourante);
 
   Rectangle dest = {
       std::round(posActuelle.x * tailleCase) + (tailleCase / 2.0f),

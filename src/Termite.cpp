@@ -75,9 +75,9 @@ bool Termite::nidEnFace(const Grille &grille) const {
 int Termite::voisinsLibre(const Grille &grille) const {
   int voisins = 0;
   for (int i = std::max(position.getLig() - 1, 0);
-       i <= std::min(position.getLig() + 1, TAILLE_GRILLE - 1); i++) {
+       i <= std::min(position.getLig() + 1, grille.getTaille() - 1); i++) {
     for (int j = std::max(position.getCol() - 1, 0);
-         j <= std::min(position.getCol() + 1, TAILLE_GRILLE - 1); j++) {
+         j <= std::min(position.getCol() + 1, grille.getTaille() - 1); j++) {
       if (i != position.getLig() || j != position.getCol()) {
         if (grille.estVide(Coord(i, j))) {
           voisins++;

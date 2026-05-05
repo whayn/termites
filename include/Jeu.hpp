@@ -18,7 +18,7 @@ private:
 
 public:
   Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.05,
-      int nbColonies = 2);
+      int nbColonies = 2, int tailleGrille = 20);
 
   const std::vector<Termite> &getTermites() const { return termites; }
   const std::vector<Colonie> &getColonies() const { return colonies; }

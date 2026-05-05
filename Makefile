@@ -42,7 +42,7 @@ IMGUI_OBJS = imgui.o imgui_draw.o imgui_tables.o imgui_widgets.o rlImGui.o
 test.o: src/test.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-OBJS = Coord.o Grille.o Termite.o Jeu.o Application.o Colonie.o TermiteVisuel.o $(IMGUI_OBJS)
+OBJS = Coord.o Grille.o Termite.o Jeu.o Application.o Colonie.o TermiteVisuel.o GestionnaireSprites.o $(IMGUI_OBJS)
 
 tests: test.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

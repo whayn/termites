@@ -1,7 +1,7 @@
 #ifndef PARAMETRES_HPP
 #define PARAMETRES_HPP
 
-const int TAILLE_GRILLE = 20;
+const int TAILLE_GRILLE = 100;
 
 const float TAILLE_TUILE =
     48.0f; // En pixels, pour l'affichage, ne devrait pas

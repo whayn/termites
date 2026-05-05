@@ -8,7 +8,7 @@
 
 // Coord
 Coord::Coord(int lig, int col) : lig(lig), col(col) {
-  if (lig < 0 || lig >= TAILLE_GRILLE || col < 0 || col >= TAILLE_GRILLE) {
+  if (lig < 0 || col < 0) {
     throw std::out_of_range("Coordonnées " + std::to_string(lig) + ", " +
                             std::to_string(col) + " hors de la grille !");
   }
@@ -135,8 +135,6 @@ TEST_CASE("Test de la classe Coord") {
   SUBCASE("Test de l'exception pour des coordonnées hors de la grille") {
     CHECK_THROWS_AS(Coord(-1, 5), std::out_of_range);
     CHECK_THROWS_AS(Coord(5, -1), std::out_of_range);
-    CHECK_THROWS_AS(Coord(TAILLE_GRILLE, 5), std::out_of_range);
-    CHECK_THROWS_AS(Coord(5, TAILLE_GRILLE), std::out_of_range);
   }
 }
 
@@ -221,10 +219,6 @@ TEST_CASE("Test de la classe Direction") {
     // Coin
     CHECK_THROWS_AS(devantCoord(Coord(0, 0), Direction::NORD),
                     std::out_of_range);
-    // Bord
-    CHECK_THROWS_AS(
-        devantCoord(Coord((TAILLE_GRILLE / 2), TAILLE_GRILLE), Direction::SUD),
-        std::out_of_range);
   }
 
   SUBCASE("Test du retour au départ") {

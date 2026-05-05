@@ -2,6 +2,7 @@
 #define TERMITEVISUEL_HPP
 
 #include "Coord.hpp"
+#include "GestionnaireSprites.hpp"
 #include "raylib.h"
 class TermiteVisuel {
 private:
@@ -36,7 +37,9 @@ public:
   void setCap(Direction c) { cap = c; }
 
   void mettreAJour(float delta, float vitesseSimulation);
-  void dessiner(Texture2D &texture, float tailleCase) const;
+  void dessiner(Texture2D &texture,
+                const GestionnaireSprites &gestionnaireSprites,
+                float tailleCase) const;
 };
 
 #endif

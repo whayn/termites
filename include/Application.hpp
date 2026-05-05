@@ -1,6 +1,7 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
+#include "GestionnaireSprites.hpp"
 #include "Jeu.hpp"
 #include "TermiteVisuel.hpp"
 #include <raylib.h>
@@ -14,11 +15,15 @@ struct AppConfig {
   int nbTermitesParColonie;
   float densiteBrindilles;
   int nbColonies;
+  int tailleGrille;
 };
 
 struct CaseDecor {
-  int idTexture;
+  std::string nomSprite;
+  Color couleurFond;
   float angle;
+  bool flipH;
+  bool flipV;
 };
 
 class Application {
@@ -31,6 +36,12 @@ private:
   // Textures
   Texture2D textureSol;
   Texture2D textureTermites;
+  Texture2D textureBrindille;
+  Texture2D textureNid;
+
+  // Sprites
+  GestionnaireSprites gestionnaireSpritesPetit;
+  GestionnaireSprites gestionnaireSpritesMoyen;
 
   std::vector<TermiteVisuel> rendusTermites; // La liste de nos acteurs animés
 

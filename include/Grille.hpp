@@ -17,9 +17,11 @@ struct Case {
 class Grille {
 private:
   std::vector<std::vector<Case>> cases;
+  int taille;
 
 public:
-  Grille(int t) : cases(t, std::vector<Case>(t)) {}
+  Grille(int taille)
+      : cases(taille, std::vector<Case>(taille)), taille(taille) {}
 
   void poseBrindille(
       Coord c,
@@ -35,6 +37,7 @@ public:
   void poseNid(Coord c, int idColonie);
 
   int proprietaireCase(Coord c) const;
+  int getTaille() const { return taille; }
 
   bool estVide(Coord c) const;
 

@@ -1,5 +1,6 @@
 #include "Application.hpp"
 #include "Coord.hpp"
+#include "GestionnaireSprites.hpp"
 #include "Jeu.hpp"
 #include "TermiteVisuel.hpp"
 #include "imgui.h"
@@ -11,11 +12,13 @@
 
 Application::Application()
     : jeu(nullptr), etatCourant(EtatApp::MENU_PRINCIPAL), chronometre(0),
-      vitesseSimulation(1.f), enPause(false) {
+      vitesseSimulation(1.f), enPause(false), gestionnaireSpritesPetit(16),
+      gestionnaireSpritesMoyen(32) {
 
-  config.nbColonies = 2;
-  config.nbTermitesParColonie = 20;
-  config.densiteBrindilles = 0.05f;
+  config = {.nbTermitesParColonie = 20,
+            .densiteBrindilles = 0.05f,
+            .nbColonies = 2,
+            .tailleGrille = 20};
 
   // Couleurs des colonies
   couleurs = {
@@ -33,13 +36,45 @@ Application::Application()
 
   // Caméra
   camera = {.offset = {400, 400},
-            .target = {(TAILLE_GRILLE * TAILLE_TUILE) / 2.0f,
-                       (TAILLE_GRILLE * TAILLE_TUILE) / 2.0f},
+            .target = {(config.tailleGrille * TAILLE_TUILE) / 2.0f,
+                       (config.tailleGrille * TAILLE_TUILE) / 2.0f},
             .rotation = 0,
-            .zoom = 800.f / (TAILLE_GRILLE * TAILLE_TUILE)};
+            .zoom = 800.f / (config.tailleGrille * TAILLE_TUILE)};
 
-  textureSol = LoadTexture("assets/spritesheet_sol.png");
-  textureTermites = LoadTexture("assets/spritesheet_termites.png");
+  // Sprites
+  // Sol
+  gestionnaireSpritesPetit.ajouter("SOL_VIDE", 0, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_CAILLOU_1", 1, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_CAILLOU_2", 2, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_CAILLOU_RARE", 3, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_RACINE_1", 4, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_RACINE_2", 5, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_CHAMPI", 6, 0);
+  gestionnaireSpritesPetit.ajouter("SOL_MOUSSE", 7, 0);
+
+  // Brindilles
+  gestionnaireSpritesPetit.ajouter("BRINDILLE", 0, 0);
+
+  // Termites
+  gestionnaireSpritesPetit.ajouter("TERMITE_ORTHO", 0, 0, 4);
+  gestionnaireSpritesPetit.ajouter("TERMITE_DIAG", 0, 1, 4);
+  gestionnaireSpritesPetit.ajouter("TERMITE_ORTHO_BRINDILLE", 0, 2, 4);
+  gestionnaireSpritesPetit.ajouter("TERMITE_DIAG_BRINDILLE", 0, 3, 4);
+
+  // Masques termites
+  gestionnaireSpritesPetit.ajouter("TERMITE_ORTHO_MASQUE", 0, 4, 4);
+  gestionnaireSpritesPetit.ajouter("TERMITE_DIAG_MASQUE", 0, 5, 4);
+  gestionnaireSpritesPetit.ajouter("TERMITE_ORTHO_BRINDILLE_MASQUE", 0, 6, 4);
+  gestionnaireSpritesPetit.ajouter("TERMITE_DIAG_BRINDILLE_MASQUE", 0, 7, 4);
+
+  // Nid
+  gestionnaireSpritesMoyen.ajouter("NID", 0, 0);
+
+  // Chargement des textures
+  textureSol = LoadTexture("assets/Sprite_Sol.png");
+  textureTermites = LoadTexture("assets/Sprite_Termite.png");
+  textureBrindille = LoadTexture("assets/Sprite_Brindille.png");
+  textureNid = LoadTexture("assets/Sprite_Nid.png");
 }
 
 Application::~Application() {
@@ -127,13 +162,20 @@ void Application::dessinerGrille() {
   Vector2 origine = {TAILLE_TUILE / 2, TAILLE_TUILE / 2};
 
   // Sol
-  for (int i = 0; i < TAILLE_GRILLE; i++) {
-    for (int j = 0; j < TAILLE_GRILLE; j++) {
+  for (int i = 0; i < config.tailleGrille; i++) {
+    for (int j = 0; j < config.tailleGrille; j++) {
       CaseDecor &cd = mapDecor[i][j];
-      // On découpe la texture en 5 parties (0: sol, 1-2: racines, 3-4:
-      // cailloux)
-      Rectangle source = {(float)(cd.idTexture * TAILLE_TUILE), 0, TAILLE_TUILE,
-                          TAILLE_TUILE};
+      std::string nomSprite = "SOL_VIDE";
+      if (cd.idTexture == 1)
+        nomSprite = "SOL_RACINE_1";
+      else if (cd.idTexture == 2)
+        nomSprite = "SOL_RACINE_2";
+      else if (cd.idTexture == 3)
+        nomSprite = "SOL_CAILLOU_1";
+      else if (cd.idTexture == 4)
+        nomSprite = "SOL_CAILLOU_2";
+
+      Rectangle source = gestionnaireSpritesPetit.getRectangle(nomSprite);
 
       Rectangle dest = {j * TAILLE_TUILE + origine.x,
                         i * TAILLE_TUILE + origine.y, TAILLE_TUILE,
@@ -156,7 +198,7 @@ void Application::dessinerGrille() {
 
   // Termites
   for (const TermiteVisuel &rendu : rendusTermites) {
-    rendu.dessiner(textureTermites, TAILLE_TUILE);
+    rendu.dessiner(textureTermites, gestionnaireSpritesPetit, TAILLE_TUILE);
   }
 }
 
@@ -174,6 +216,7 @@ void Application::dessinerMenu() {
   ImGui::InputInt("Termites par colonie", &config.nbTermitesParColonie, 1, 5);
   ImGui::SliderFloat("Densité de brindilles", &config.densiteBrindilles, 0.f,
                      1.f);
+  ImGui::InputInt("Taille de la grille", &config.tailleGrille, 1, 10);
 
   if (ImGui::Button("Lancer la simulation")) {
     if (jeu != nullptr) {
@@ -182,7 +225,7 @@ void Application::dessinerMenu() {
     }
 
     jeu = new Jeu(config.nbTermitesParColonie, config.densiteBrindilles,
-                  config.nbColonies);
+                  config.nbColonies, config.tailleGrille);
 
     initialiserDecor();
     synchroniserVisuels();
@@ -209,7 +252,7 @@ void Application::dessinerHUD() {
     enPause = !enPause;
   }
 
-  ImGui::SliderFloat("Vitesse Tick", &vitesseSimulation, 0.01f, 5.0f);
+  ImGui::SliderFloat("Vitesse Tick", &vitesseSimulation, 0.01f, 20.0f);
 
   ImGui::Separator();
 
@@ -250,12 +293,12 @@ void Application::synchroniserVisuels() {
 
 void Application::initialiserDecor() {
   mapDecor.assign(
-      TAILLE_GRILLE,
-      std::vector<CaseDecor>(
-          TAILLE_GRILLE)) // On initialise la map de décor avec des cases vides
+      config.tailleGrille,
+      std::vector<CaseDecor>(config.tailleGrille)) // On initialise la map de
+                                                   // décor avec des cases vides
       ;
-  for (int i = 0; i < TAILLE_GRILLE; i++) {
-    for (int j = 0; j < TAILLE_GRILLE; j++) {
+  for (int i = 0; i < config.tailleGrille; i++) {
+    for (int j = 0; j < config.tailleGrille; j++) {
       int r = GetRandomValue(0, 100);
       if (r < 95) {
         mapDecor[i][j].idTexture = 0; // Texture de base
