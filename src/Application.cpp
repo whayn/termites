@@ -333,6 +333,24 @@ void Application::dessinerGrille() {
                        WHITE);
       }
 
+      // Pheromones
+      if (afficherPheromones) {
+        for (int idCol = 0; idCol < config.nbColonies; idCol++) {
+          float intensite =
+              jeu->getGrille().getIntensitePheromone(Coord(i, j), idCol);
+
+          // On affiche seulement si la trace est assez forte (optimisation
+          // visuelle)
+          if (intensite > 0.02f) {
+            Color couleurColonie = couleurs[idCol % (int)couleurs.size()];
+            // On multiplie par 0.6f max pour ne jamais rendre le sol
+            // totalement opaque, même à intensité 1.0
+            DrawRectangleRec(destFond,
+                             ColorAlpha(couleurColonie, intensite * 0.6f));
+          }
+        }
+      }
+
       // Brindilles
       if (jeu->getGrille().contientBrindille(Coord(i, j))) {
         Rectangle source = gestionnaireSpritesPetit.getRectangle("BRINDILLE");
@@ -466,8 +484,12 @@ void Application::dessinerHUD() {
                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
                    ImGuiWindowFlags_NoMove);
   for (const Colonie &colonie : jeu->getColonies()) {
-    ImGui::TextColored(ImVec4(0.8f, 0.5f, 0.2f, 1.0f), "Colonie %d",
-                       colonie.getId());
+
+    Color c = couleurs[colonie.getId() % couleurs.size()];
+    ImVec4 couleurImGui =
+        ImVec4(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, 1.0f);
+
+    ImGui::TextColored(couleurImGui, "Colonie %d", colonie.getId());
     ImGui::SameLine();
     ImGui::Text(": %d brindilles", colonie.getScore());
   }
@@ -505,7 +527,7 @@ void Application::dessinerHUD() {
     ImGui::End();
   }
 
-  ImGui::SetNextWindowPos(ImVec2(10, hauteurEcran - 100), ImGuiCond_Always);
+  ImGui::SetNextWindowPos(ImVec2(10, hauteurEcran - 150), ImGuiCond_Always);
   ImGui::Begin("Simulation", nullptr,
                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                    ImGuiWindowFlags_AlwaysAutoResize);
@@ -515,6 +537,8 @@ void Application::dessinerHUD() {
   }
   ImGui::SameLine();
   ImGui::SliderFloat("Vitesse", &vitesseSimulation, 0.1f, 25.0f, "%.1fx");
+
+  ImGui::Checkbox("Afficher Phéromones", &afficherPheromones);
 
   if (ImGui::Button("Quitter")) {
     reinitialiserJeu(JEU_PAR_DEFAUT, true);
@@ -640,6 +664,7 @@ void Application::reinitialiserJeu(const AppConfig &nouvelleConfig,
   chronometre = 0.f;
   compteurEtapes = 0;
   idTermiteInspecte = -1; // On désinspecte tout termite à la réinitialisation
+  vitesseSimulation = 1.f;
 
   // Réinitialiser la caméra pour centrer sur le monde
   float largeurEcran = (float)GetScreenWidth();
@@ -655,6 +680,9 @@ void Application::reinitialiserJeu(const AppConfig &nouvelleConfig,
     camera.zoom =
         std::sqrt(largeurEcran * largeurEcran + hauteurEcran * hauteurEcran) /
         tailleMonde;
+
+    afficherPheromones =
+        false; // Pas besoin d'afficher les phéromones dans le menu
   } else {
     camera.zoom =
         std::max(largeurEcran / tailleMonde, hauteurEcran / tailleMonde);

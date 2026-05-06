@@ -5,9 +5,9 @@
 #include <doctest.h>
 #include <stdexcept>
 
-Termite::Termite(int id, int idColonie, Coord position, int dureeSablier,
-                 float probaTourner)
-    : id(id), idColonie(idColonie), position(position),
+Termite::Termite(int id, int idColonie, Coord position, Coord posNid,
+                 int dureeSablier, float probaTourner)
+    : id(id), idColonie(idColonie), position(position), posNid(posNid),
       cap(static_cast<Direction>(rand() % 8)), avecBrindille(false), sablier(0),
       tourneSurPlace(false), dureeSablier(dureeSablier),
       probaTourner(probaTourner) {};
@@ -128,19 +128,65 @@ void Termite::vieTermite(Grille &grille) {
   if (sablier > 0)
     sablier--;
 
+  // Machines à états
   if (!avecBrindille) {
-
-    // Les termites peuvent voler les brindilles des autres colonies, mais pas
-    // les leurs
+    // Recherche de brindille
     if (brindilleEnFace(grille) && sablier == 0 &&
         grille.proprietaireCase(devant()) != idColonie) {
       chargeBrindille(grille);
-
     } else {
-      marcheAleatoire(grille);
-    }
+      // Gestion des phéromones
+      Direction dirF = cap;
+      Direction dirG = aGauche(cap);
+      Direction dirD = aDroite(cap);
 
-  } else if (avecBrindille) {
+      // Captation des odeurs
+      float posF = 0, posG = 0, posD;
+      // Pas de phéromones à proximité du nid pour éviter les bloquages
+      if (position.distance(posNid) > 8.0f) {
+        try {
+          if (grille.estVide(devantCoord(position, dirF)))
+            posF = grille.getIntensitePheromone(devantCoord(position, dirF),
+                                                idColonie);
+        } catch (...) {
+        }
+        try {
+          if (grille.estVide(devantCoord(position, dirG)))
+            posG = grille.getIntensitePheromone(devantCoord(position, dirG),
+                                                idColonie);
+        } catch (...) {
+        }
+        try {
+          if (grille.estVide(devantCoord(position, dirD)))
+            posD = grille.getIntensitePheromone(devantCoord(position, dirD),
+                                                idColonie);
+        } catch (...) {
+        }
+      }
+
+      // Décision de la direction à prendre
+      if (posF > 0 || posG > 0 || posD > 0) {
+        float total = posF + posG + posD;
+        float r = (float)rand() / (float)RAND_MAX * total;
+
+        if (r < posF) {
+          // Reste dans la même direction
+        } else if (r < posF + posG) {
+          tourneAGauche();
+        } else {
+          tourneADroite();
+        }
+        avance(grille);
+      } else {
+        marcheAleatoire(grille);
+      }
+    }
+  } else {
+    // Retour au nid
+
+    // On pose des phéromones à chaque pas lorsque le termite porte une
+    // brindille
+    grille.deposerPheromone(position, idColonie, 0.1f);
 
     if (!tourneSurPlace) {
       if (((brindilleEnFace(grille) || nidEnFace(grille)) &&
@@ -148,16 +194,41 @@ void Termite::vieTermite(Grille &grille) {
           sablier == 0 && voisinsLibre(grille) > 1) {
         tourneSurPlace = true;
         tourneADroite();
-
       } else {
-        marcheAleatoire(grille);
-      }
+        float distActuelle = position.distance(posNid);
 
+        // On évalue les distances au nid dans les trois directions possibles
+        Direction meilleurCap = cap;
+        float meilleureDist = distActuelle;
+
+        Direction caps[3] = {cap, aGauche(cap), aDroite(cap)};
+        for (Direction c : caps) {
+          try {
+            Coord cible = devantCoord(position, c);
+            if (grille.estVide(cible)) {
+              float dist = cible.distance(posNid);
+              if (dist < meilleureDist) {
+                meilleureDist = dist;
+                meilleurCap = c;
+              }
+            }
+          } catch (...) {
+          }
+        }
+
+        if (meilleureDist < distActuelle) {
+          cap = meilleurCap;
+          if (rand() % 100 < 10)
+            tourneAleat();
+          avance(grille);
+        } else {
+          marcheAleatoire(grille);
+        }
+      }
     } else if (tourneSurPlace) {
       if (laVoieEstLibre(grille)) {
         dechargeBrindille(grille);
         tourneSurPlace = false;
-
       } else {
         tourneADroite();
       }
@@ -167,7 +238,7 @@ void Termite::vieTermite(Grille &grille) {
 
 TEST_CASE("Test de la classe Termite") {
   Grille g(10);
-  Termite t(1, 0, Coord(5, 5));
+  Termite t(1, 0, Coord(5, 5), Coord(0, 0));
   g.poseTermite(Coord(5, 5), 1);
 
   Coord cible = t.devant();
@@ -285,7 +356,7 @@ TEST_CASE("Test de la classe Termite") {
         g.enleveTermite(voisinsAll[k]);
     }
 
-    Termite tc(3, 0, Coord(0, 0));
+    Termite tc(3, 0, Coord(0, 0), Coord(0, 0));
     g.poseTermite(Coord(0, 0), 3);
     CHECK(tc.voisinsLibre(g) == 3);
 
@@ -295,7 +366,7 @@ TEST_CASE("Test de la classe Termite") {
     g.enleveBrindille(right);
     g.enleveTermite(Coord(0, 0));
 
-    Termite te(4, 0, Coord(0, 5));
+    Termite te(4, 0, Coord(0, 5), Coord(0, 0));
     g.poseTermite(Coord(0, 5), 4);
     CHECK(te.voisinsLibre(g) == 5);
     g.enleveTermite(Coord(0, 5));

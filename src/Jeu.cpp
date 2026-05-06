@@ -75,13 +75,13 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
     }
   }
 
+  // Initialisation des phéromones
+  grille.initialiserPheromones(nbColonies);
+
   // Placement des nids
   for (const Colonie &colonie : colonies) {
     grille.poseNid(colonie.getPosition(), colonie.getId());
   }
-
-  // Initialisation des phéromones
-  grille.initialiserPheromones(nbColonies);
 
   // Placement des termites
   int idTermite = 0;
@@ -93,7 +93,8 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
         pos = Coord(rand() % grille.getTaille(), rand() % grille.getTaille());
       } while (!grille.estVide(pos));
       grille.poseTermite(pos, idTermite);
-      termites.push_back(Termite(idTermite, colonie.getId(), pos));
+      termites.push_back(
+          Termite(idTermite, colonie.getId(), pos, colonie.getPosition()));
       idTermite++;
     }
   }

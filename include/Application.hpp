@@ -59,6 +59,7 @@ private:
   float vitesseSimulation; // Le nombre de secondes entre chaque mise à jour de
                            // la logique du jeu
   bool enPause;
+  bool afficherPheromones = false;
   int compteurEtapes = 0;
 
   AppConfig config;

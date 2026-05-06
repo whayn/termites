@@ -10,6 +10,7 @@ private:
   int id;
   int idColonie;
   Coord position;
+  Coord posNid;
   Direction cap;
   bool avecBrindille;
   int sablier;
@@ -18,8 +19,8 @@ private:
   float probaTourner;
 
 public:
-  Termite(int id, int idColonie, Coord position, int dureeSablier = 6,
-          float probaTourner = 0.1);
+  Termite(int id, int idColonie, Coord position, Coord posNid,
+          int dureeSablier = 6, float probaTourner = 0.1);
 
   // Accès
   Direction directionTermite() const;
