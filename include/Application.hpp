@@ -4,19 +4,13 @@
 #include "GestionnaireSprites.hpp"
 #include "Jeu.hpp"
 #include "TermiteVisuel.hpp"
+#include "parametres.hpp"
 #include <raylib.h>
 #include <vector>
 
 enum class EtatApp {
   MENU_PRINCIPAL,
   SIMULATION,
-};
-
-struct AppConfig {
-  int nbTermitesParColonie;
-  float densiteBrindilles;
-  int nbColonies;
-  int tailleGrille;
 };
 
 struct CaseDecor {
@@ -63,6 +57,7 @@ private:
   int compteurEtapes = 0;
 
   AppConfig config;
+  LaboConfig laboConfig;
 
   void mettreAJourLogique();  // Avance la simulation si pas en pause
   void dessinerMenu();        // Menu de départ ImGui

@@ -1,5 +1,6 @@
 #include "Termite.hpp"
 #include "Coord.hpp"
+#include "parametres.hpp"
 
 #include <cstdlib>
 #include <doctest.h>
@@ -124,7 +125,7 @@ void Termite::dechargeBrindille(Grille &grille) {
   sablier = getDureeSablier();
 }
 
-void Termite::vieTermite(Grille &grille) {
+void Termite::vieTermite(Grille &grille, const LaboConfig &laboConfig) {
   if (sablier > 0)
     sablier--;
 
@@ -143,7 +144,7 @@ void Termite::vieTermite(Grille &grille) {
       // Captation des odeurs
       float posF = 0, posG = 0, posD;
       // Pas de phéromones à proximité du nid pour éviter les bloquages
-      if (position.distance(posNid) > 8.0f) {
+      if (position.distance(posNid) > laboConfig.rayonAntiBouchon) {
         try {
           if (grille.estVide(devantCoord(position, dirF)))
             posF = grille.getIntensitePheromone(devantCoord(position, dirF),
@@ -186,12 +187,12 @@ void Termite::vieTermite(Grille &grille) {
 
     // On pose des phéromones à chaque pas lorsque le termite porte une
     // brindille
-    grille.deposerPheromone(position, idColonie, 0.1f);
+    grille.deposerPheromone(position, idColonie, laboConfig.depotPheromone);
 
     if (!tourneSurPlace) {
       if (((brindilleEnFace(grille) || nidEnFace(grille)) &&
            grille.proprietaireCase(devant()) == idColonie) &&
-          sablier == 0 && voisinsLibre(grille) > 1) {
+          sablier == 0 && voisinsLibre(grille) > laboConfig.compaciteNid) {
         tourneSurPlace = true;
         tourneADroite();
       } else {
@@ -218,7 +219,7 @@ void Termite::vieTermite(Grille &grille) {
 
         if (meilleureDist < distActuelle) {
           cap = meilleurCap;
-          if (rand() % 100 < 10)
+          if (rand() % 100 < laboConfig.bruitGPS)
             tourneAleat();
           avance(grille);
         } else {
@@ -238,6 +239,7 @@ void Termite::vieTermite(Grille &grille) {
 
 TEST_CASE("Test de la classe Termite") {
   Grille g(10);
+  g.initialiserPheromones(1);
   Termite t(1, 0, Coord(5, 5), Coord(0, 0));
   g.poseTermite(Coord(5, 5), 1);
 
@@ -310,7 +312,7 @@ TEST_CASE("Test de la classe Termite") {
 
     for (int i = 0; i < t.getDureeSablier(); i++) {
       CHECK(t.getSablier() == t.getDureeSablier() - i);
-      t.vieTermite(g);
+      t.vieTermite(g, LaboConfig());
     }
     CHECK(t.getSablier() == 0);
 

@@ -3,6 +3,7 @@
 
 #include "Coord.hpp"
 #include "Grille.hpp"
+#include "parametres.hpp"
 #include <string>
 
 class Termite {
@@ -52,7 +53,7 @@ public:
   void marcheAleatoire(Grille &grille);
   void chargeBrindille(Grille &grille);
   void dechargeBrindille(Grille &grille);
-  void vieTermite(Grille &grille);
+  void vieTermite(Grille &grille, const LaboConfig &laboConfig);
 };
 
 #endif

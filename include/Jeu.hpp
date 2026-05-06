@@ -4,6 +4,7 @@
 #include "Colonie.hpp"
 #include "Grille.hpp"
 #include "Termite.hpp"
+#include "parametres.hpp"
 #include <vector>
 
 class Jeu {
@@ -13,23 +14,17 @@ private:
   std::vector<Colonie> colonies;
   int numeroEtape;
 
-  float tauxEvaporationPheromones;
-  float quantitePheromone;
-
   void verifieIntegrite() const;
   void calculerScores();
 
 public:
-  Jeu(int nbTermitesParColonie = 20, float densiteBrindilles = 0.08,
-      int nbColonies = 3, int tailleGrille = 50,
-      float tauxEvaporationPheromones = 0.005f,
-      float quantitePheromone = 0.15f);
+  Jeu(const AppConfig &config);
 
   const std::vector<Termite> &getTermites() const { return termites; }
   const std::vector<Colonie> &getColonies() const { return colonies; }
   const Grille &getGrille() const { return grille; }
 
-  void etapeSuivante();
+  void etapeSuivante(const LaboConfig &laboConfig);
 
   std::ostream &afficheJeu(std::ostream &out) const;
 };

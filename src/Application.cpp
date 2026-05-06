@@ -9,16 +9,19 @@
 #include "raymath.h"
 #include "utilitaires.hpp"
 #include <cmath>
+#include <cstdint>
 #include <raylib.h>
 #include <rlImGui.h>
 #include <vector>
 
-const AppConfig JEU_PAR_DEFAUT = {
-    20,
-    0.08f,
-    3,
-    50,
-};
+const AppConfig JEU_PAR_DEFAUT(50,    // tailleGrille
+                               0.08f, // densiteBrindilles
+                               3,     // nbColonies
+                               std::vector<ColonieConfig>{
+                                   ColonieConfig{20, 6, 0.1f},
+                                   ColonieConfig{20, 6, 0.1f},
+                                   ColonieConfig{20, 6, 0.1f}} // coloniesConfig
+);
 
 void ConfigurerInterface() {
   ImGuiStyle &style = ImGui::GetStyle();
@@ -82,7 +85,7 @@ Application::Application()
   melanger(couleurs);
 
   // Initialisation de raylib
-  InitWindow(800, 800, "Termites");
+  InitWindow(1000, 1000, "Termites");
   SetTargetFPS(60);
   // Initialisation d'ImGui
   rlImGuiSetup(true);
@@ -256,8 +259,7 @@ void Application::mettreAJourLogique() {
   }
 
   // Si vitesse = 2, le délai devient 0.25s
-  float delaiBase = 0.5f;
-  float delaiReel = delaiBase / vitesseSimulation;
+  float delaiReel = laboConfig.delaiDeBase / vitesseSimulation;
 
   float dt = GetFrameTime();
 
@@ -282,7 +284,7 @@ void Application::mettreAJourLogique() {
 
   chronometre += dt;
   if (chronometre >= delaiReel) {
-    jeu->etapeSuivante();
+    jeu->etapeSuivante(laboConfig);
     synchroniserVisuels();
     chronometre -= delaiReel;
     compteurEtapes++;
@@ -343,10 +345,11 @@ void Application::dessinerGrille() {
           // visuelle)
           if (intensite > 0.02f) {
             Color couleurColonie = couleurs[idCol % (int)couleurs.size()];
-            // On multiplie par 0.6f max pour ne jamais rendre le sol
-            // totalement opaque, même à intensité 1.0
-            DrawRectangleRec(destFond,
-                             ColorAlpha(couleurColonie, intensite * 0.6f));
+            // On multiplie par l'opacité visuelle max pour ne jamais rendre le
+            // sol totalement opaque, même à intensité 1.0
+            DrawRectangleRec(
+                destFond, ColorAlpha(couleurColonie,
+                                     intensite * laboConfig.opaciteVisuelle));
           }
         }
       }
@@ -452,13 +455,29 @@ void Application::dessinerMenu() {
   ImGui::Spacing();
 
   // Configuration
-  ImGui::Text("Configuration ");
+  ImGui::Text("Configuration");
   ImGui::Spacing();
-  ImGui::SliderInt("Colonies", &config.nbColonies, 1, 8);
-  ImGui::SliderInt("Population", &config.nbTermitesParColonie, 5, 200);
-  ImGui::SliderFloat("Brindilles", &config.densiteBrindilles, 0.01f, 0.3f,
-                     "%.2f");
+
   ImGui::SliderInt("Taille Grille", &config.tailleGrille, 10, 200);
+  ImGui::SliderFloat("Densité Brindilles", &config.densiteBrindilles, 0.01f,
+                     0.3f, "%.2f");
+
+  if (ImGui::SliderInt("Colonies", &config.nbColonies, 1, 8)) {
+    config.coloniesConfig.resize(config.nbColonies);
+  }
+
+  for (int i = 0; i < config.nbColonies; i++) {
+    if (ImGui::TreeNode((void *)(intptr_t)i, "Colonie %d", i + 1)) {
+      ImGui::SliderInt("Population", &config.coloniesConfig[i].population, 5,
+                       200);
+      ImGui::SliderInt("Temps Sablier", &config.coloniesConfig[i].tempsSablier,
+                       1, 20);
+      ImGui::SliderFloat("Proba Tourner",
+                         &config.coloniesConfig[i].probaTourner, 0.01f, 1.0f,
+                         "%.2f");
+      ImGui::TreePop();
+    }
+  }
 
   ImGui::Spacing();
   ImGui::Separator();
@@ -546,6 +565,51 @@ void Application::dessinerHUD() {
     etatCourant = EtatApp::MENU_PRINCIPAL;
   }
   ImGui::End();
+
+  ImGui::SetNextWindowPos(ImVec2(largeurEcran - 320, hauteurEcran - 600),
+                          ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(310, 0));
+  ImGui::Begin("Laboratoire", nullptr, ImGuiWindowFlags_NoResize);
+
+  if (ImGui::CollapsingHeader("Physique & Environnement",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::SliderFloat("Taux d'évaporation", &laboConfig.tauxEvaporation, 0.0f,
+                       0.05f, "%.4f");
+    ImGui::SliderFloat("Dépôt phéromone", &laboConfig.depotPheromone, 0.0f,
+                       1.0f, "%.2f");
+    ImGui::SliderFloat("Opacité Visuelle", &laboConfig.opaciteVisuelle, 0.0f,
+                       1.0f, "%.2f");
+    ImGui::SliderFloat("Délai de Base", &laboConfig.delaiDeBase, 0.01f, 2.0f,
+                       "%.2f");
+  }
+
+  if (ImGui::CollapsingHeader("Comportement des Termites",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::SliderFloat("Anti-Bouchon (Rayon)", &laboConfig.rayonAntiBouchon,
+                       1.0f, 15.0f, "%.1f");
+    ImGui::SliderInt("Compacité du Nid", &laboConfig.compaciteNid, 0, 8);
+    ImGui::SliderFloat("Bruit du GPS (%)", &laboConfig.bruitGPS, 0.0f, 100.0f,
+                       "%.0f");
+  }
+
+  if (ImGui::CollapsingHeader("Génération du Terrain",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+    bool modifierDecor = false;
+    if (ImGui::SliderFloat("Echelle Bruit", &laboConfig.zoomPerlin, 0.5f, 10.0f,
+                           "%.1f"))
+      modifierDecor = true;
+    if (ImGui::SliderInt("Seuil Climat Sec", &laboConfig.seuilClimatSec, 0,
+                         255))
+      modifierDecor = true;
+    if (ImGui::SliderInt("Seuil Humide", &laboConfig.seuilClimatHumide, 0, 255))
+      modifierDecor = true;
+
+    if (modifierDecor) {
+      initialiserDecor();
+    }
+  }
+
+  ImGui::End();
 }
 
 void Application::synchroniserVisuels() {
@@ -582,10 +646,9 @@ void Application::initialiserDecor() {
                       config.tailleGrille)); // On remplit la map de décor
                                              // avec des cases vides
 
-  int offsetX = GetRandomValue(0, 1000);
-  int offsetY = GetRandomValue(0, 1000);
   Image noise = GenImagePerlinNoise(config.tailleGrille, config.tailleGrille,
-                                    offsetX, offsetY, 4.0f);
+                                    laboConfig.offsetX, laboConfig.offsetY,
+                                    laboConfig.zoomPerlin);
   Color *pixels = LoadImageColors(noise);
 
   Color colHumide = {78, 67, 56, 255};   // Terre sombre et grasse
@@ -600,13 +663,13 @@ void Application::initialiserDecor() {
       std::string sprite = "SOL_VIDE";
       int r = GetRandomValue(1, 100);
 
-      if (perlinValue < 90) { // Humide
+      if (perlinValue < laboConfig.seuilClimatSec) { // Humide
         cd.couleurFond = colHumide;
         if (r <= 5)
           sprite = "SOL_CHAMPI";
         else if (r <= 10)
           sprite = "SOL_MOUSSE";
-      } else if (perlinValue < 170) { // Normal
+      } else if (perlinValue < laboConfig.seuilClimatHumide) { // Normal
         cd.couleurFond = colNormal;
         if (r <= 3)
           sprite = "SOL_RACINE_2";
@@ -649,8 +712,7 @@ void Application::reinitialiserJeu(const AppConfig &nouvelleConfig,
 
   // Mise à jour de la configuration
   config = nouvelleConfig;
-  jeu = new Jeu(config.nbTermitesParColonie, config.densiteBrindilles,
-                config.nbColonies, config.tailleGrille);
+  jeu = new Jeu(config);
 
   // Reinitialiser le décor et les rendus
   initialiserDecor();

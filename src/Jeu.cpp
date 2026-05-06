@@ -10,14 +10,10 @@
 #include <stdexcept>
 #include <vector>
 
-Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
-         int tailleGrille, float tauxEvaporationPheromones,
-         float quantitePheromone)
-    : grille(tailleGrille), numeroEtape(0),
-      tauxEvaporationPheromones(tauxEvaporationPheromones),
-      quantitePheromone(quantitePheromone) {
+Jeu::Jeu(const AppConfig &config)
+    : grille(config.tailleGrille), numeroEtape(0) {
 
-  if (nbColonies > tailleGrille * tailleGrille / 8) {
+  if (config.nbColonies > config.tailleGrille * config.tailleGrille / 8) {
     throw std::invalid_argument(
         "Le nombre de colonies est trop élevé pour la taille de la grille");
   }
@@ -38,7 +34,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
       couleurs[0]);
   colonies.push_back(premiereColonie);
 
-  for (int k = 1; k < nbColonies; k++) {
+  for (int k = 1; k < config.nbColonies; k++) {
     std::vector<double> distanceCarrees;
     std::vector<Coord> positionCandidat;
     double sommeDistances = 0;
@@ -76,7 +72,7 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
   }
 
   // Initialisation des phéromones
-  grille.initialiserPheromones(nbColonies);
+  grille.initialiserPheromones(config.nbColonies);
 
   // Placement des nids
   for (const Colonie &colonie : colonies) {
@@ -87,14 +83,28 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
   int idTermite = 0;
 
   for (const Colonie &colonie : colonies) {
+    // If the config doesn't have enough configurations for colonies, we fall
+    // back to defaults
+    int nbTermitesParColonie = 20;
+    int dureeSablier = 6;
+    float probaTourner = 0.1f;
+
+    if (colonie.getId() < (int)config.coloniesConfig.size()) {
+      const ColonieConfig &colConf = config.coloniesConfig[colonie.getId()];
+      nbTermitesParColonie = colConf.population;
+      dureeSablier = colConf.tempsSablier;
+      probaTourner = colConf.probaTourner;
+    }
+
     for (int i = 0; i < nbTermitesParColonie; i++) {
       Coord pos(0, 0);
       do {
         pos = Coord(rand() % grille.getTaille(), rand() % grille.getTaille());
       } while (!grille.estVide(pos));
       grille.poseTermite(pos, idTermite);
-      termites.push_back(
-          Termite(idTermite, colonie.getId(), pos, colonie.getPosition()));
+      termites.push_back(Termite(idTermite, colonie.getId(), pos,
+                                 colonie.getPosition(), dureeSablier,
+                                 probaTourner));
       idTermite++;
     }
   }
@@ -102,14 +112,15 @@ Jeu::Jeu(int nbTermitesParColonie, float densiteBrindilles, int nbColonies,
   for (int i = 0; i < grille.getTaille(); i++) {
     for (int j = 0; j < grille.getTaille(); j++) {
       Coord c(i, j);
-      if (grille.estVide(c) && rand() % 100 < (int)(densiteBrindilles * 100)) {
+      if (grille.estVide(c) &&
+          rand() % 100 < (int)(config.densiteBrindilles * 100)) {
         grille.poseBrindille(c, -1);
       }
     }
   }
 }
 
-void Jeu::etapeSuivante() {
+void Jeu::etapeSuivante(const LaboConfig &laboConfig) {
   std::vector<int> ordreDePassage(termites.size());
   for (int i = 0; i < (int)termites.size(); i++) {
     ordreDePassage[i] = i;
@@ -117,15 +128,15 @@ void Jeu::etapeSuivante() {
 
   melanger(ordreDePassage);
 
-  grille.evaporerPheromones(tauxEvaporationPheromones);
+  grille.evaporerPheromones(laboConfig.tauxEvaporation);
 
   for (int id : ordreDePassage) {
     Termite &t = termites[id];
-    t.vieTermite(grille);
+    t.vieTermite(grille, laboConfig);
 
     if (t.porteBrindille()) {
       grille.deposerPheromone(t.getPosition(), t.getIdColonie(),
-                              quantitePheromone);
+                              laboConfig.depotPheromone);
     }
   }
 
