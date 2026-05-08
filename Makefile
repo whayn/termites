@@ -12,7 +12,7 @@ CXXFLAGS += -I${IMGUI_DIR} -I${RLIMGUI_DIR} -I${DOCTEST_DIR}
 CXXFLAGS +=  $(shell pkg-config --cflags raylib)
 LDFLAGS += $(shell pkg-config --libs raylib) -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
-EXEC_FILES = tests main
+EXEC_FILES = tests main main-cli
 
 all: $(EXEC_FILES)
 
@@ -48,6 +48,9 @@ tests: test.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 main: main.o $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+main-cli: main_cli.o $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 

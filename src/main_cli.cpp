@@ -1,5 +1,7 @@
 #include "Jeu.hpp"
+#include "parametres.hpp"
 #include <string>
+#include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <cstddef>
 #include <cstdlib>
@@ -11,8 +13,11 @@ int main() {
   srand(time(NULL));
 
   int nbTermites = 5;
-  float densiteBrindilles = 0.1;
-  Jeu jeu(nbTermites, densiteBrindilles, 4);
+  Jeu jeu(AppConfig(20, 0.08f, 2,
+                    std::vector<ColonieConfig>{
+                        ColonieConfig{nbTermites, 6, 0.1f},
+                        ColonieConfig{nbTermites, 6, 0.1f},
+                    }));
   int nbPasse = 1;
   std::string saisie;
 
@@ -35,7 +40,7 @@ int main() {
       nbPasse = std::max(1, nbPasse / 2);
 
     for (int i = 0; i < nbPasse; i++) {
-      jeu.etapeSuivante();
+      jeu.etapeSuivante(LaboConfig());
     }
   }
 

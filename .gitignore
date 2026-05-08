@@ -3,6 +3,7 @@ compile_commands.json
 *.tmp
 tests
 main
+main-cli
 .cache/
 .direnv/
 imgui.ini

@@ -48,7 +48,6 @@ public:
   float getIntensitePheromone(Coord c, int idColonie) const;
   void evaporerPheromones(float taux);
 
-  // Plus tard on réalisera une fonction afficheJeu
   std::ostream &print(std::ostream &out) const;
 };
 

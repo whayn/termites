@@ -566,7 +566,7 @@ void Application::dessinerHUD() {
   }
   ImGui::End();
 
-  ImGui::SetNextWindowPos(ImVec2(largeurEcran - 320, hauteurEcran - 600),
+  ImGui::SetNextWindowPos(ImVec2(largeurEcran - 320, hauteurEcran - 450),
                           ImGuiCond_Always);
   ImGui::SetNextWindowSize(ImVec2(310, 0));
   ImGui::Begin("Laboratoire", nullptr, ImGuiWindowFlags_NoResize);

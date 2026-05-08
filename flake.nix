@@ -19,20 +19,25 @@
           inherit system;
           overlays = [ nixgl.overlay ];
         };
+
+        commonBuildDeps = with pkgs; [
+          clang
+          gnumake
+          bear
+          raylib
+          pkg-config
+        ];
+
+        devTools = with pkgs; [
+          valgrind
+          pkgs.nixgl.auto.nixGLDefault
+        ];
+
       in
       {
         devShell = pkgs.mkShell {
-          name = "progmod-dev-shell";
-          buildInputs = with pkgs; [
-            clang
-            gnumake
-            bear
-            valgrind
-            raylib
-            pkg-config
-            nix
-            pkgs.nixgl.auto.nixGLDefault
-          ];
+          name = "projet-termites-dev-shell";
+          buildInputs = commonBuildDeps ++ devTools;
           shellHook = ''
             if [ ! -f compile_commands.json ]; then
               make bear
@@ -40,5 +45,6 @@
           '';
         };
       }
+
     );
 }
