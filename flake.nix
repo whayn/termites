@@ -26,6 +26,13 @@
           bear
           raylib
           pkg-config
+          cmake
+          xorg.libX11
+          xorg.libXrandr
+          xorg.libXinerama
+          xorg.libXcursor
+          xorg.libXi
+          libGL
         ];
 
         devTools = with pkgs; [
@@ -38,11 +45,11 @@
         devShell = pkgs.mkShell {
           name = "projet-termites-dev-shell";
           buildInputs = commonBuildDeps ++ devTools;
-          shellHook = ''
-            if [ ! -f compile_commands.json ]; then
-              make bear
-            fi
-          '';
+          # shellHook = ''
+          #   if [ ! -f compile_commands.json ]; then
+          #     make bear
+          #   fi
+          # '';
         };
       }
 
