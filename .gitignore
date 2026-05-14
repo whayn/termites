@@ -7,3 +7,4 @@ main-cli
 .cache/
 .direnv/
 imgui.ini
+build/
