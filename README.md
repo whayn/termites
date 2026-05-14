@@ -3,6 +3,10 @@
 > [!WARNING]
 > This project is undergoing translation from French to English. The README and game are currently in English, but the code comments and documentation may still be in French.
 
+
+> [!NOTE]
+> No agentic AI was used in the development of this project. AI powered autocompletion tools were used. All design decisions (good and bad :() and implementations were made by me :3
+
 ## Compilation
 
 1. Clone the project and initialize submodules (required for dependencies like Raylib, ImGui, and Doctest):
