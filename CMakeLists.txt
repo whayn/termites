@@ -59,6 +59,12 @@ target_compile_options(termites_core PRIVATE -Wall -Wextra)
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE termites_core)
 
+# Copy assets to build directory so the executable can find them
+add_custom_command(TARGET main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets
+)
+
 # CLI
 add_executable(main-cli src/main_cli.cpp)
 target_link_libraries(main-cli PRIVATE termites_core)
