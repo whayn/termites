@@ -1,29 +1,34 @@
-# Projet Termites
+# Stigmergy in Termites
+
+> [!WARNING]
+> This project is undergoing translation from French to English. The README and game are currently in English, but the code comments and documentation may still be in French.
+
 
 ## Compilation
+1. Clone the project:
+   ```bash
+    git clone https://github.com/whayn/termites.git
+    cd termites
+   ```
+2. If you have nix installed, enter the development environment:
+   ```bash
+    nix develop --impure
+   ```
+  Note: If you don't have nix, you simply need to have raylib installed
+3. Compile the project:
+   ```bash
+    make
+   ```
 
-1. Clonez le projet et placez-vous dans le dossier `Projet`
-2. Si vous avez nix :
-  - Entrez dans le shell (assurez vous d'avoir les flakes activés) :
-  ```bash
-  nix develop --impure
-  ```
-  - Sinon, il vous suffit d'avoir `clang` et `raylib` d'installés sur votre machine.
-3. Compilez le projet :
-```bash
-make main
-```
-4. Exécutez le projet :
-```bash
-./main
-```
+## Usage
+1. Run the compiled program:
+   ```bash    
+   ./main
+   ```
+  or if in the nix development environment:
+   ```bash
+   nixGL ./main
+   ```
 
-## Tests 
-Pour lancer les tests, utilisez la commande suivante :
-```bash
-make tests
-``` 
-puis pour exécuter les tests :
-```bash
-./tests
-```
+## License
+This project is licensed under the GPL 3.0 License. See the [LICENSE](LICENSE) file for details

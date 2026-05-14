@@ -450,29 +450,29 @@ void Application::dessinerMenu() {
   // Titre
   ImGui::Spacing();
 
-  ImGui::TextColored(ImVec4(0.4f, 0.6f, 0.3f, 1.0f), "Projet Termites");
+  ImGui::TextColored(ImVec4(0.4f, 0.6f, 0.3f, 1.0f), "Stigmergy in Termites");
   ImGui::Separator();
   ImGui::Spacing();
 
   // Configuration
-  ImGui::Text("Configuration");
+  ImGui::Text("Config");
   ImGui::Spacing();
 
-  ImGui::SliderInt("Taille Grille", &config.tailleGrille, 10, 200);
-  ImGui::SliderFloat("Densité Brindilles", &config.densiteBrindilles, 0.01f,
-                     0.3f, "%.2f");
+  ImGui::SliderInt("Grid Size", &config.tailleGrille, 10, 200);
+  ImGui::SliderFloat("Twigs Density", &config.densiteBrindilles, 0.01f, 0.3f,
+                     "%.2f");
 
   if (ImGui::SliderInt("Colonies", &config.nbColonies, 1, 8)) {
     config.coloniesConfig.resize(config.nbColonies);
   }
 
   for (int i = 0; i < config.nbColonies; i++) {
-    if (ImGui::TreeNode((void *)(intptr_t)i, "Colonie %d", i + 1)) {
+    if (ImGui::TreeNode((void *)(intptr_t)i, "Colony %d", i + 1)) {
       ImGui::SliderInt("Population", &config.coloniesConfig[i].population, 5,
                        200);
-      ImGui::SliderInt("Temps Sablier", &config.coloniesConfig[i].tempsSablier,
+      ImGui::SliderInt("Action Timer", &config.coloniesConfig[i].tempsSablier,
                        1, 20);
-      ImGui::SliderFloat("Proba Tourner",
+      ImGui::SliderFloat("Turn Probability",
                          &config.coloniesConfig[i].probaTourner, 0.01f, 1.0f,
                          "%.2f");
       ImGui::TreePop();
@@ -484,7 +484,7 @@ void Application::dessinerMenu() {
   ImGui::Spacing();
 
   // LAncement
-  if (ImGui::Button("Lancer la simulation", ImVec2(-1, 50))) {
+  if (ImGui::Button("Start the simulation", ImVec2(-1, 50))) {
     reinitialiserJeu(config, false);
     etatCourant = EtatApp::SIMULATION;
     enPause = false;
@@ -499,7 +499,7 @@ void Application::dessinerHUD() {
   float hauteurEcran = (float)GetScreenHeight();
 
   ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-  ImGui::Begin("Statistiques", nullptr,
+  ImGui::Begin("Stats", nullptr,
                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
                    ImGuiWindowFlags_NoMove);
   for (const Colonie &colonie : jeu->getColonies()) {
@@ -508,20 +508,20 @@ void Application::dessinerHUD() {
     ImVec4 couleurImGui =
         ImVec4(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, 1.0f);
 
-    ImGui::TextColored(couleurImGui, "Colonie %d", colonie.getId());
+    ImGui::TextColored(couleurImGui, "Colony %d", colonie.getId());
     ImGui::SameLine();
-    ImGui::Text(": %d brindilles", colonie.getScore());
+    ImGui::Text(": %d twigs", colonie.getScore());
   }
   ImGui::End();
 
   ImGui::SetNextWindowPos(ImVec2(10, 130), ImGuiCond_Always);
   ImGui::SetNextWindowSize(ImVec2(300, 0));
-  ImGui::Begin("Graphiques", nullptr,
+  ImGui::Begin("Graphs", nullptr,
                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                    ImGuiWindowFlags_AlwaysAutoResize);
   for (size_t i = 0; i < historiqueScores.size(); i++) {
     char label[32];
-    sprintf(label, "Colonie %zu", i);
+    sprintf(label, "Colony %zu", i);
     if (!historiqueScores[i].empty()) {
       ImGui::PlotLines(label, historiqueScores[i].data(),
                        historiqueScores[i].size(), 0, nullptr, 0.0f, 50.0f,
@@ -534,14 +534,15 @@ void Application::dessinerHUD() {
     const Termite &t = jeu->getTermites()[idTermiteInspecte];
     ImGui::SetNextWindowPos(ImVec2(largeurEcran - 260, 10), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(250, 0));
-    ImGui::Begin("Inspecteur de Termite", nullptr,
+    ImGui::Begin("Termite Inspector", nullptr,
                  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-    ImGui::Text("ID : %d (Colonie %d)", t.getId(), t.getIdColonie());
+    ImGui::Text("ID : %d (Colony %d)", t.getId(), t.getIdColonie());
     ImGui::Separator();
-    ImGui::Text("État : %s", t.porteBrindille() ? "Porte brindille" : "À vide");
+    ImGui::Text("State : %s",
+                t.porteBrindille() ? "Carries a Twig" : "Empty handed");
     ImGui::ProgressBar((float)t.getSablier() / t.getDureeSablier(),
-                       ImVec2(-1, 0), "Sablier");
-    if (ImGui::Button("Fermer l'inspection", ImVec2(-1, 0)))
+                       ImVec2(-1, 0), "Action Timer");
+    if (ImGui::Button("Close Inspection", ImVec2(-1, 0)))
       idTermiteInspecte = -1;
     ImGui::End();
   }
@@ -555,53 +556,54 @@ void Application::dessinerHUD() {
     enPause = !enPause;
   }
   ImGui::SameLine();
-  ImGui::SliderFloat("Vitesse", &vitesseSimulation, 0.1f, 25.0f, "%.1fx");
+  ImGui::SliderFloat("Speed", &vitesseSimulation, 0.1f, 25.0f, "%.1fx");
 
-  ImGui::Checkbox("Afficher Phéromones", &afficherPheromones);
+  ImGui::Checkbox("View Pheromones", &afficherPheromones);
 
-  if (ImGui::Button("Quitter")) {
+  if (ImGui::Button("Quit")) {
     reinitialiserJeu(JEU_PAR_DEFAUT, true);
 
     etatCourant = EtatApp::MENU_PRINCIPAL;
   }
   ImGui::End();
 
-  ImGui::SetNextWindowPos(ImVec2(largeurEcran - 320, hauteurEcran - 450),
+  ImGui::SetNextWindowPos(ImVec2(largeurEcran - 510, hauteurEcran - 460),
                           ImGuiCond_Always);
-  ImGui::SetNextWindowSize(ImVec2(310, 0));
-  ImGui::Begin("Laboratoire", nullptr, ImGuiWindowFlags_NoResize);
+  ImGui::SetNextWindowSize(ImVec2(500, 0));
+  ImGui::Begin("Lab", nullptr, ImGuiWindowFlags_NoResize);
 
-  if (ImGui::CollapsingHeader("Physique & Environnement",
+  if (ImGui::CollapsingHeader("Physics & Environment",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::SliderFloat("Taux d'évaporation", &laboConfig.tauxEvaporation, 0.0f,
+    ImGui::SliderFloat("Evaporation rate", &laboConfig.tauxEvaporation, 0.0f,
                        0.05f, "%.4f");
-    ImGui::SliderFloat("Dépôt phéromone", &laboConfig.depotPheromone, 0.0f,
+    ImGui::SliderFloat("Pheromone deposite", &laboConfig.depotPheromone, 0.0f,
                        1.0f, "%.2f");
-    ImGui::SliderFloat("Opacité Visuelle", &laboConfig.opaciteVisuelle, 0.0f,
+    ImGui::SliderFloat("Visual Opacity", &laboConfig.opaciteVisuelle, 0.0f,
                        1.0f, "%.2f");
-    ImGui::SliderFloat("Délai de Base", &laboConfig.delaiDeBase, 0.01f, 2.0f,
+    ImGui::SliderFloat("Base Delay", &laboConfig.delaiDeBase, 0.01f, 2.0f,
                        "%.2f");
   }
 
-  if (ImGui::CollapsingHeader("Comportement des Termites",
+  if (ImGui::CollapsingHeader("Termites Behavior",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::SliderFloat("Anti-Bouchon (Rayon)", &laboConfig.rayonAntiBouchon,
-                       1.0f, 15.0f, "%.1f");
-    ImGui::SliderInt("Compacité du Nid", &laboConfig.compaciteNid, 0, 8);
-    ImGui::SliderFloat("Bruit du GPS (%)", &laboConfig.bruitGPS, 0.0f, 100.0f,
+    ImGui::SliderFloat("Anti-Clog (Radius)", &laboConfig.rayonAntiBouchon, 1.0f,
+                       15.0f, "%.1f");
+    ImGui::SliderInt("Nest Compacity ", &laboConfig.compaciteNid, 0, 8);
+    ImGui::SliderFloat("GPS Noise (%)", &laboConfig.bruitGPS, 0.0f, 100.0f,
                        "%.0f");
   }
 
-  if (ImGui::CollapsingHeader("Génération du Terrain",
+  if (ImGui::CollapsingHeader("Terrain Generation",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     bool modifierDecor = false;
-    if (ImGui::SliderFloat("Echelle Bruit", &laboConfig.zoomPerlin, 0.5f, 10.0f,
+    if (ImGui::SliderFloat("Noise Scale", &laboConfig.zoomPerlin, 0.5f, 10.0f,
                            "%.1f"))
       modifierDecor = true;
-    if (ImGui::SliderInt("Seuil Climat Sec", &laboConfig.seuilClimatSec, 0,
+    if (ImGui::SliderInt("Dry Climate Threshold", &laboConfig.seuilClimatSec, 0,
                          255))
       modifierDecor = true;
-    if (ImGui::SliderInt("Seuil Humide", &laboConfig.seuilClimatHumide, 0, 255))
+    if (ImGui::SliderInt("Wet Climate Threshold", &laboConfig.seuilClimatHumide,
+                         0, 255))
       modifierDecor = true;
 
     if (modifierDecor) {
