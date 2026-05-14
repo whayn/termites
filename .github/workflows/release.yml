@@ -1,0 +1,79 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on tags like v1.0.0, v0.1, etc.
+  workflow_dispatch: # Allows you to manually trigger a release if needed
+
+permissions:
+  contents: write # Needed to create a release and upload assets
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: termites-linux.tar.gz
+          - os: windows-latest
+            artifact_name: termites-windows.zip
+          - os: macos-latest
+            artifact_name: termites-macos.tar.gz
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive # Important: gets raylib, imgui, doctest
+
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxrandr-dev libxi-dev libxcursor-dev libgl1-mesa-dev libxinerama-dev
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: Prepare Package
+        shell: bash
+        run: |
+          mkdir release_package
+
+          # MSVC on Windows puts executables in build/Release/, GCC/Clang put them in build/
+          # This find command ensures we get them regardless of the generator
+          find build -type f -name "main" -o -name "main.exe" | grep -v "CMakeFiles" | xargs -I {} cp {} release_package/
+          find build -type f -name "main-cli" -o -name "main-cli.exe" | grep -v "CMakeFiles" | xargs -I {} cp {} release_package/
+
+          # Copy assets and metadata
+          cp -r assets release_package/ || true
+          cp imgui.ini release_package/ || true
+          cp README.md release_package/ || true
+
+      - name: Compress Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path release_package/* -DestinationPath ${{ matrix.artifact_name }}
+
+      - name: Compress Package (Unix)
+        if: runner.os != 'Windows'
+        run: tar -czvf ${{ matrix.artifact_name }} -C release_package .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.artifact_name }}
+          generate_release_notes: true
